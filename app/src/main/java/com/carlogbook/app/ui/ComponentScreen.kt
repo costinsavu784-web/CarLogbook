@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.carlogbook.app.data.Service
+import com.carlogbook.app.data.ServicePart
 import com.carlogbook.app.domain.Catalog
 import com.carlogbook.app.domain.Component
 import com.carlogbook.app.domain.ComponentStatus
@@ -56,6 +57,9 @@ fun ComponentScreen(
     val upcoming by upcomingFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val allServices by servicesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val placements by vm.placements.collectAsStateWithLifecycle()
+    val partsFlow = remember(carId) { vm.parts(carId) }
+    val parts by partsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val partsByService = remember(parts) { parts.groupBy { it.serviceId } }
 
     val status: ComponentStatus = remember(upcoming, allServices, placements, componentName) {
         Catalog.status(upcoming, allServices, placements)
@@ -126,7 +130,12 @@ fun ComponentScreen(
                 itemsIndexed(history, key = { _, s -> s.id }) { index, service ->
                     // Distance and time since the previous time this was done (the next, older entry).
                     val previous = history.getOrNull(index + 1)
-                    HistoryRow(service = service, previous = previous, onClick = { onEditService(service.id) })
+                    HistoryRow(
+                        service = service,
+                        parts = partsByService[service.id] ?: emptyList(),
+                        previous = previous,
+                        onClick = { onEditService(service.id) }
+                    )
                 }
             }
         }
@@ -168,7 +177,7 @@ private fun Stat(label: String, value: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HistoryRow(service: Service, previous: Service?, onClick: () -> Unit) {
+private fun HistoryRow(service: Service, parts: List<ServicePart>, previous: Service?, onClick: () -> Unit) {
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -183,13 +192,13 @@ private fun HistoryRow(service: Service, previous: Service?, onClick: () -> Unit
                 if (previous != null) {
                     val km = service.odometerKm - previous.odometerKm
                     val days = service.dateEpochDay - previous.dateEpochDay
-                    val parts = listOfNotNull(
+                    val gap = listOfNotNull(
                         km.takeIf { it > 0 }?.let { Fmt.km(it) },
                         days.takeIf { it > 0 }?.let { Fmt.span(it) }
                     )
-                    if (parts.isNotEmpty()) {
+                    if (gap.isNotEmpty()) {
                         Text(
-                            "${parts.joinToString(" and ")} after the previous one",
+                            "${gap.joinToString(" and ")} after the previous one",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -203,6 +212,8 @@ private fun HistoryRow(service: Service, previous: Service?, onClick: () -> Unit
                 if (repeat.isNotEmpty()) {
                     Text("Repeat $repeat", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
+
+                PartsSummary(parts)
 
                 if (service.notes.isNotBlank()) {
                     Text(service.notes, style = MaterialTheme.typography.bodySmall)

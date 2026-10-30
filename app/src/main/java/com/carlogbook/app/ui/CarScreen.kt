@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.carlogbook.app.data.Car
 import com.carlogbook.app.data.LastCar
 import com.carlogbook.app.data.Service
+import com.carlogbook.app.data.ServicePart
 import com.carlogbook.app.domain.Catalog
 import com.carlogbook.app.domain.CategoryStatus
 import com.carlogbook.app.domain.Fmt
@@ -91,6 +92,9 @@ fun CarScreen(
     val services by servicesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val upcoming by upcomingFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val placements by vm.placements.collectAsStateWithLifecycle()
+    val partsFlow = remember(carId) { vm.parts(carId) }
+    val parts by partsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val partsByService = remember(parts) { parts.groupBy { it.serviceId } }
     val currentCar = car
     val categories = remember(upcoming, services, placements) { Catalog.status(upcoming, services, placements) }
 
@@ -155,6 +159,7 @@ fun CarScreen(
             )
             else -> HistoryTab(
                 services = services,
+                partsByService = partsByService,
                 onEditService = onEditService,
                 modifier = Modifier.padding(padding)
             )
@@ -293,6 +298,7 @@ private fun OdometerCard(car: Car, onUpdate: () -> Unit) {
 @Composable
 private fun HistoryTab(
     services: List<Service>,
+    partsByService: Map<Long, List<ServicePart>>,
     onEditService: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -319,13 +325,17 @@ private fun HistoryTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(visits, key = { it.first().id }) { visit ->
-            VisitCard(services = visit, onEdit = onEditService)
+            VisitCard(services = visit, partsByService = partsByService, onEdit = onEditService)
         }
     }
 }
 
 @Composable
-private fun VisitCard(services: List<Service>, onEdit: (Long) -> Unit) {
+private fun VisitCard(
+    services: List<Service>,
+    partsByService: Map<Long, List<ServicePart>>,
+    onEdit: (Long) -> Unit
+) {
     val first = services.first()
     // One note shared by all jobs is shown once under the header; different notes go with their job.
     val sharedNotes = first.notes.takeIf { n -> n.isNotBlank() && services.all { it.notes == n } }
@@ -348,14 +358,19 @@ private fun VisitCard(services: List<Service>, onEdit: (Long) -> Unit) {
             }
             Spacer(Modifier.height(4.dp))
             services.forEach { service ->
-                JobRow(service = service, showNotes = sharedNotes == null, onClick = { onEdit(service.id) })
+                JobRow(
+                    service = service,
+                    parts = partsByService[service.id] ?: emptyList(),
+                    showNotes = sharedNotes == null,
+                    onClick = { onEdit(service.id) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun JobRow(service: Service, showNotes: Boolean, onClick: () -> Unit) {
+private fun JobRow(service: Service, parts: List<ServicePart>, showNotes: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -378,6 +393,8 @@ private fun JobRow(service: Service, showNotes: Boolean, onClick: () -> Unit) {
                 )
             }
 
+            PartsSummary(parts)
+
             if (showNotes && service.notes.isNotBlank()) {
                 Text(
                     service.notes,
@@ -392,6 +409,27 @@ private fun JobRow(service: Service, showNotes: Boolean, onClick: () -> Unit) {
             contentDescription = "Edit ${service.jobName}",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+/** Parts used, one per line: "Oil filter · 1 · OEM 11 42 8 583 898 · Mann HU 8007 z". */
+@Composable
+fun PartsSummary(parts: List<ServicePart>) {
+    if (parts.isEmpty()) return
+    Column {
+        parts.forEach { p ->
+            val line = listOfNotNull(
+                p.name.ifBlank { null },
+                p.quantity.ifBlank { null },
+                p.oemNumber.ifBlank { null }?.let { "OEM $it" },
+                p.supplierNumber.ifBlank { null }
+            ).joinToString(" · ")
+            Text(
+                line,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

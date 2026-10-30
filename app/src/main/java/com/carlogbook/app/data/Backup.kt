@@ -4,8 +4,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
 
-/** One car together with its services, as read from or written to a backup file. */
-data class CarBackup(val car: Car, val services: List<Service>)
+/** One car together with its services (and their parts), as read from or written to a backup file. */
+data class CarBackup(val car: Car, val services: List<ServiceDraft>)
 
 /** The whole garage: cars with their services, plus where the user filed components. */
 data class GarageBackup(
@@ -13,6 +13,7 @@ data class GarageBackup(
     val placements: List<ComponentPlacement> = emptyList()
 ) {
     val serviceCount: Int get() = cars.sumOf { it.services.size }
+    val partCount: Int get() = cars.sumOf { c -> c.services.sumOf { it.parts.size } }
 }
 
 /**
@@ -21,11 +22,11 @@ data class GarageBackup(
  * Services are nested under their car, so database IDs are not stored and importing into
  * another phone (or after a reinstall) never collides with existing rows.
  *
- * Format history: 1 = cars and services. 2 = adds "placements".
+ * Format history: 1 = cars and services. 2 = adds "placements". 3 = adds "parts" per service.
  */
 object BackupCodec {
 
-    const val FORMAT_VERSION = 2
+    const val FORMAT_VERSION = 3
     private const val APP_TAG = "CarLogbook"
 
     fun suggestedFileName(today: LocalDate = LocalDate.now()): String =
@@ -41,7 +42,18 @@ object BackupCodec {
         for (entry in backup.cars) {
             val c = entry.car
             val services = JSONArray()
-            for (s in entry.services) {
+            for (draft in entry.services) {
+                val s = draft.service
+                val parts = JSONArray()
+                for (p in draft.parts) {
+                    parts.put(
+                        JSONObject()
+                            .put("name", p.name)
+                            .put("quantity", p.quantity)
+                            .put("oem", p.oemNumber)
+                            .put("supplier", p.supplierNumber)
+                    )
+                }
                 services.put(
                     JSONObject()
                         .put("jobName", s.jobName)
@@ -50,6 +62,7 @@ object BackupCodec {
                         .put("notes", s.notes)
                         .putOpt("intervalKm", s.intervalKm)
                         .putOpt("intervalMonths", s.intervalMonths)
+                        .put("parts", parts)
                 )
             }
             cars.put(
@@ -110,7 +123,7 @@ object BackupCodec {
             val services = c.optJSONArray("services") ?: JSONArray()
             val list = List(services.length()) { j ->
                 val s = services.getJSONObject(j)
-                Service(
+                val service = Service(
                     carId = 0, // assigned on import
                     jobName = s.getString("jobName"),
                     dateEpochDay = s.optDay("date") ?: throw IllegalArgumentException("A service has no date."),
@@ -119,6 +132,18 @@ object BackupCodec {
                     intervalKm = s.optIntOrNull("intervalKm"),
                     intervalMonths = s.optIntOrNull("intervalMonths")
                 )
+                val parts = s.optJSONArray("parts") ?: JSONArray()
+                val partList = List(parts.length()) { k ->
+                    val p = parts.getJSONObject(k)
+                    ServicePart(
+                        serviceId = 0, // assigned on import
+                        name = p.optString("name"),
+                        quantity = p.optString("quantity"),
+                        oemNumber = p.optString("oem"),
+                        supplierNumber = p.optString("supplier")
+                    )
+                }.filter { it.name.isNotBlank() }
+                ServiceDraft(service, partList)
             }
             CarBackup(car, list)
         }

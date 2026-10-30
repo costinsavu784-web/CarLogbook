@@ -63,6 +63,24 @@ interface ServiceDao {
 }
 
 @Dao
+interface PartDao {
+    @Query("SELECT p.* FROM service_parts p JOIN services s ON s.id = p.serviceId WHERE s.carId = :carId ORDER BY p.id")
+    fun observeForCar(carId: Long): Flow<List<ServicePart>>
+
+    @Query("SELECT * FROM service_parts WHERE serviceId = :serviceId ORDER BY id")
+    suspend fun getForService(serviceId: Long): List<ServicePart>
+
+    @Query("SELECT p.* FROM service_parts p JOIN services s ON s.id = p.serviceId WHERE s.carId = :carId ORDER BY p.id")
+    suspend fun getForCar(carId: Long): List<ServicePart>
+
+    @Insert
+    suspend fun insertAll(parts: List<ServicePart>)
+
+    @Query("DELETE FROM service_parts WHERE serviceId = :serviceId")
+    suspend fun deleteForService(serviceId: Long)
+}
+
+@Dao
 interface PlacementDao {
     @Query("SELECT * FROM component_placements")
     fun observeAll(): Flow<List<ComponentPlacement>>

@@ -8,15 +8,26 @@ import androidx.room.migration.Migration
 import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Car::class, Service::class, ComponentPlacement::class], version = 3, exportSchema = false)
+@Database(
+    entities = [Car::class, Service::class, ServicePart::class, ComponentPlacement::class],
+    version = 4,
+    exportSchema = false
+)
 abstract class CarDatabase : RoomDatabase() {
     abstract fun carDao(): CarDao
     abstract fun serviceDao(): ServiceDao
+    abstract fun partDao(): PartDao
     abstract fun placementDao(): PlacementDao
 
     /** Everything in the database, ready to be written to a backup file. */
     suspend fun exportGarage(): GarageBackup = GarageBackup(
-        cars = carDao().getAll().map { car -> CarBackup(car, serviceDao().getForCar(car.id)) },
+        cars = carDao().getAll().map { car ->
+            val partsByService = partDao().getForCar(car.id).groupBy { it.serviceId }
+            CarBackup(
+                car,
+                serviceDao().getForCar(car.id).map { s -> ServiceDraft(s, partsByService[s.id] ?: emptyList()) }
+            )
+        },
         placements = placementDao().getAll()
     )
 
@@ -28,10 +39,30 @@ abstract class CarDatabase : RoomDatabase() {
         carDao().deleteAll()
         for (entry in backup.cars) {
             val carId = carDao().insert(entry.car.copy(id = 0))
-            serviceDao().insertAll(entry.services.map { it.copy(id = 0, carId = carId) })
+            for (draft in entry.services) {
+                val serviceId = serviceDao().insert(draft.service.copy(id = 0, carId = carId))
+                partDao().insertAll(draft.parts.map { it.copy(id = 0, serviceId = serviceId) })
+            }
         }
         placementDao().deleteAll()
         placementDao().upsertAll(backup.placements)
+    }
+
+    /** Inserts or updates a service and replaces its parts list. Returns the service id. */
+    suspend fun saveDraft(draft: ServiceDraft): Long = withTransaction {
+        val id = if (draft.service.id == 0L) {
+            serviceDao().insert(draft.service)
+        } else {
+            serviceDao().update(draft.service)
+            partDao().deleteForService(draft.service.id)
+            draft.service.id
+        }
+        partDao().insertAll(
+            draft.parts
+                .filter { it.name.isNotBlank() }
+                .map { it.copy(id = 0, serviceId = id) }
+        )
+        id
     }
 
     companion object {
@@ -44,8 +75,25 @@ abstract class CarDatabase : RoomDatabase() {
                     context.applicationContext,
                     CarDatabase::class.java,
                     "carlogbook.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
+
+        /** Version 4 adds parts and materials used per service. */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `service_parts` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`serviceId` INTEGER NOT NULL, " +
+                        "`name` TEXT NOT NULL, " +
+                        "`quantity` TEXT NOT NULL, " +
+                        "`oemNumber` TEXT NOT NULL, " +
+                        "`supplierNumber` TEXT NOT NULL, " +
+                        "FOREIGN KEY(`serviceId`) REFERENCES `services`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_service_parts_serviceId` ON `service_parts` (`serviceId`)")
+            }
+        }
 
         /** Version 3 lets a placement override whether a component wears out. */
         private val MIGRATION_2_3 = object : Migration(2, 3) {

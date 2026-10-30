@@ -20,11 +20,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -54,25 +56,56 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.carlogbook.app.data.Service
+import com.carlogbook.app.data.ServiceDraft
+import com.carlogbook.app.data.ServicePart
 import com.carlogbook.app.domain.Fmt
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 private const val MILLIS_PER_DAY = 86_400_000L
 
-/** One job in the form, with its own optional reminder interval. */
+/** One part or material used for a job, as typed in the form. */
+private data class PartEntry(
+    val name: String = "",
+    val quantity: String = "",
+    val oem: String = "",
+    val supplier: String = ""
+) {
+    val isBlank: Boolean get() = name.isBlank() && quantity.isBlank() && oem.isBlank() && supplier.isBlank()
+}
+
+/** One job in the form, with its own optional reminder interval and parts list. */
 private data class JobEntry(
     val name: String,
     val intervalKm: String = "",
-    val intervalMonths: String = ""
+    val intervalMonths: String = "",
+    val parts: List<PartEntry> = emptyList()
 )
 
-/** Keeps the job list across rotation and process death. */
+/** Keeps the job list across rotation and process death. Flat string list; parts are 4 strings each. */
 private val JobsSaver = listSaver<SnapshotStateList<JobEntry>, String>(
-    save = { list -> list.flatMap { listOf(it.name, it.intervalKm, it.intervalMonths) } },
+    save = { list ->
+        buildList {
+            for (j in list) {
+                add(j.name); add(j.intervalKm); add(j.intervalMonths); add(j.parts.size.toString())
+                for (p in j.parts) { add(p.name); add(p.quantity); add(p.oem); add(p.supplier) }
+            }
+        }
+    },
     restore = { flat ->
         mutableStateListOf<JobEntry>().apply {
-            flat.chunked(3).forEach { add(JobEntry(it[0], it[1], it[2])) }
+            var i = 0
+            while (i + 3 < flat.size) {
+                val name = flat[i]; val km = flat[i + 1]; val months = flat[i + 2]
+                val n = flat[i + 3].toIntOrNull() ?: 0
+                i += 4
+                val parts = List(n) { k ->
+                    val b = i + k * 4
+                    PartEntry(flat[b], flat[b + 1], flat[b + 2], flat[b + 3])
+                }
+                i += n * 4
+                add(JobEntry(name, km, months, parts))
+            }
         }
     }
 )
@@ -100,6 +133,18 @@ fun ServiceEditScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
 
+    /** Builds a job entry prefilled with the interval and parts used last time for this job. */
+    suspend fun prefilledJob(name: String): JobEntry {
+        val last = vm.lastInterval(carId, name)
+        val parts = vm.lastParts(carId, name).map { PartEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber) }
+        return JobEntry(
+            name = name,
+            intervalKm = last?.intervalKm?.toString() ?: "",
+            intervalMonths = last?.intervalMonths?.toString() ?: "",
+            parts = parts
+        )
+    }
+
     LaunchedEffect(serviceId) {
         if (!loaded) {
             if (isNew) {
@@ -108,24 +153,17 @@ fun ServiceEditScreen(
                     odometer = car.currentOdometerKm.toString()
                 }
                 val job = initialJob?.trim()
-                if (!job.isNullOrEmpty()) {
-                    val last = vm.lastInterval(carId, job)
-                    jobs.add(
-                        JobEntry(
-                            name = job,
-                            intervalKm = last?.intervalKm?.toString() ?: "",
-                            intervalMonths = last?.intervalMonths?.toString() ?: ""
-                        )
-                    )
-                }
+                if (!job.isNullOrEmpty()) jobs.add(prefilledJob(job))
             } else {
                 val service = vm.getService(serviceId)
                 if (service != null) {
+                    val parts = vm.getParts(serviceId).map { PartEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber) }
                     jobs.add(
                         JobEntry(
                             name = service.jobName,
                             intervalKm = service.intervalKm?.toString() ?: "",
-                            intervalMonths = service.intervalMonths?.toString() ?: ""
+                            intervalMonths = service.intervalMonths?.toString() ?: "",
+                            parts = parts
                         )
                     )
                     dateDay = service.dateEpochDay
@@ -137,25 +175,13 @@ fun ServiceEditScreen(
         }
     }
 
-    /** Adds a job to the list, prefilling the interval you used last time for it. */
     fun addJob(rawName: String) {
         val name = rawName.trim()
-        if (name.isEmpty() || jobs.any { it.name.equals(name, ignoreCase = true) }) {
-            jobInput = ""
-            return
-        }
         jobInput = ""
+        if (name.isEmpty() || jobs.any { it.name.equals(name, ignoreCase = true) }) return
         scope.launch {
-            val last = vm.lastInterval(carId, name)
-            if (jobs.none { it.name.equals(name, ignoreCase = true) }) {
-                jobs.add(
-                    JobEntry(
-                        name = name,
-                        intervalKm = last?.intervalKm?.toString() ?: "",
-                        intervalMonths = last?.intervalMonths?.toString() ?: ""
-                    )
-                )
-            }
+            val entry = prefilledJob(name)
+            if (jobs.none { it.name.equals(name, ignoreCase = true) }) jobs.add(entry)
         }
     }
 
@@ -189,7 +215,7 @@ fun ServiceEditScreen(
     if (showDelete) {
         ConfirmDialog(
             title = "Delete this service?",
-            message = "This entry will be removed from the history.",
+            message = "This entry and its parts list will be removed from the history.",
             confirmLabel = "Delete",
             onConfirm = {
                 vm.deleteService(serviceId)
@@ -219,6 +245,7 @@ fun ServiceEditScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // ---- Step 1: what was done -------------------------------------------------------
             if (isNew) {
                 Text("What did you do?", style = MaterialTheme.typography.titleSmall)
 
@@ -232,9 +259,7 @@ fun ServiceEditScreen(
                                 selected = true,
                                 onClick = { jobs.remove(job) },
                                 label = { Text(job.name) },
-                                trailingIcon = {
-                                    Icon(Icons.Default.Close, contentDescription = "Remove ${job.name}")
-                                }
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove ${job.name}") }
                             )
                         }
                     }
@@ -276,6 +301,7 @@ fun ServiceEditScreen(
                 )
             }
 
+            // ---- Step 2: when and at what mileage -------------------------------------------
             OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.CalendarMonth, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -293,45 +319,63 @@ fun ServiceEditScreen(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text("Notes (optional)") },
-                minLines = 3,
+                minLines = 2,
                 modifier = Modifier.fillMaxWidth()
             )
 
+            // ---- Step 3: details per job ----------------------------------------------------
             if (jobs.isNotEmpty()) {
                 Text(
-                    if (jobs.size == 1) "Remind me for the next one (optional)" else "Remind me for the next ones (optional)",
+                    "Details for each job",
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(top = 8.dp)
+                )
+                Text(
+                    "Parts and numbers are remembered: next time you do the same job they come back prefilled.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             jobs.forEachIndexed { index, job ->
-                if (index > 0) HorizontalDivider()
-                IntervalEditor(
+                JobDetailsCard(
                     job = job,
-                    showName = jobs.size > 1,
                     dateDay = dateDay,
                     odometerValue = odometerValue,
                     onChange = { jobs[index] = it }
                 )
             }
 
+            // ---- Save ----------------------------------------------------------------------
             Button(
                 onClick = {
                     if (odometerValue != null) {
-                        val services = jobs.map { job ->
-                            Service(
-                                id = if (isNew) 0L else serviceId,
-                                carId = carId,
-                                jobName = job.name.trim(),
-                                dateEpochDay = dateDay,
-                                odometerKm = odometerValue,
-                                notes = notes.trim(),
-                                intervalKm = job.intervalKm.toIntOrNull()?.takeIf { it > 0 },
-                                intervalMonths = job.intervalMonths.toIntOrNull()?.takeIf { it > 0 }
+                        val drafts = jobs.map { job ->
+                            ServiceDraft(
+                                service = Service(
+                                    id = if (isNew) 0L else serviceId,
+                                    carId = carId,
+                                    jobName = job.name.trim(),
+                                    dateEpochDay = dateDay,
+                                    odometerKm = odometerValue,
+                                    notes = notes.trim(),
+                                    intervalKm = job.intervalKm.toIntOrNull()?.takeIf { it > 0 },
+                                    intervalMonths = job.intervalMonths.toIntOrNull()?.takeIf { it > 0 }
+                                ),
+                                parts = job.parts
+                                    .filter { !it.isBlank }
+                                    .map {
+                                        ServicePart(
+                                            serviceId = 0,
+                                            name = it.name.trim().ifEmpty { "Part" },
+                                            quantity = it.quantity.trim(),
+                                            oemNumber = it.oem.trim(),
+                                            supplierNumber = it.supplier.trim()
+                                        )
+                                    }
                             )
                         }
-                        vm.saveServices(services)
+                        vm.saveServices(drafts)
                         onDone()
                     }
                 },
@@ -344,10 +388,9 @@ fun ServiceEditScreen(
             }
 
             if (!isNew) {
-                TextButton(
-                    onClick = { showDelete = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Delete this service", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { showDelete = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Delete this service", color = MaterialTheme.colorScheme.error)
+                }
             }
 
             Spacer(Modifier.padding(bottom = 24.dp))
@@ -355,10 +398,10 @@ fun ServiceEditScreen(
     }
 }
 
+/** Reminder interval and parts list for one job. */
 @Composable
-private fun IntervalEditor(
+private fun JobDetailsCard(
     job: JobEntry,
-    showName: Boolean,
     dateDay: Long,
     odometerValue: Int?,
     onChange: (JobEntry) -> Unit
@@ -374,34 +417,111 @@ private fun IntervalEditor(
         }
     }.joinToString(" or ")
 
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        if (showName) {
-            Text(job.name, style = MaterialTheme.typography.labelLarge)
-        }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            NumberField(
-                value = job.intervalKm,
-                onChange = { onChange(job.copy(intervalKm = it)) },
-                label = "Every … km",
-                maxLength = 6,
-                modifier = Modifier.weight(1f)
-            )
-            NumberField(
-                value = job.intervalMonths,
-                onChange = { onChange(job.copy(intervalMonths = it)) },
-                label = "Every … months",
-                maxLength = 3,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        if (nextDue.isNotEmpty()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(job.name, style = MaterialTheme.typography.titleMedium)
+
+            // Reminder
+            Text("Remind me for the next one (optional)", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                NumberField(
+                    value = job.intervalKm,
+                    onChange = { onChange(job.copy(intervalKm = it)) },
+                    label = "Every … km",
+                    maxLength = 6,
+                    modifier = Modifier.weight(1f)
+                )
+                NumberField(
+                    value = job.intervalMonths,
+                    onChange = { onChange(job.copy(intervalMonths = it)) },
+                    label = "Every … months",
+                    maxLength = 3,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (nextDue.isNotEmpty()) {
+                Text(
+                    "Next due $nextDue, whichever comes first.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Parts
             Text(
-                "Next due $nextDue, whichever comes first.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
+                "Parts and materials used (optional)",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            job.parts.forEachIndexed { pIndex, part ->
+                PartEditor(
+                    part = part,
+                    onChange = { updated ->
+                        onChange(job.copy(parts = job.parts.toMutableList().also { it[pIndex] = updated }))
+                    },
+                    onRemove = {
+                        onChange(job.copy(parts = job.parts.toMutableList().also { it.removeAt(pIndex) }))
+                    }
+                )
+            }
+            TextButton(onClick = { onChange(job.copy(parts = job.parts + PartEntry())) }) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(4.dp))
+                Text(if (job.parts.isEmpty()) "Add part" else "Add another part")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PartEditor(part: PartEntry, onChange: (PartEntry) -> Unit, onRemove: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = part.name,
+                    onValueChange = { onChange(part.copy(name = it)) },
+                    label = { Text("Part or material") },
+                    placeholder = { Text("Engine oil 5W-30") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove part")
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(end = 8.dp)) {
+                OutlinedTextField(
+                    value = part.quantity,
+                    onValueChange = { onChange(part.copy(quantity = it)) },
+                    label = { Text("Quantity") },
+                    placeholder = { Text("6.5 L") },
+                    singleLine = true,
+                    modifier = Modifier.weight(0.6f)
+                )
+                OutlinedTextField(
+                    value = part.oem,
+                    onValueChange = { onChange(part.copy(oem = it)) },
+                    label = { Text("OEM number") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            OutlinedTextField(
+                value = part.supplier,
+                onValueChange = { onChange(part.copy(supplier = it)) },
+                label = { Text("Supplier / aftermarket number") },
+                placeholder = { Text("Mann HU 8007 z") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 8.dp)
             )
         }
     }

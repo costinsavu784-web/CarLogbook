@@ -49,6 +49,34 @@ data class Service(
 )
 
 /**
+ * A part or material used for one service, for example "Engine oil 5W-30, 6.5 L, OEM 83 21 2 365 950".
+ * Quantity is free text so "6.5 L", "4" and "2 pcs" all work.
+ */
+@Entity(
+    tableName = "service_parts",
+    foreignKeys = [
+        ForeignKey(
+            entity = Service::class,
+            parentColumns = ["id"],
+            childColumns = ["serviceId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("serviceId")]
+)
+data class ServicePart(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val serviceId: Long,
+    val name: String,
+    val quantity: String = "",
+    val oemNumber: String = "",
+    val supplierNumber: String = ""
+)
+
+/** A service together with the parts used, as edited in the form before saving. */
+data class ServiceDraft(val service: Service, val parts: List<ServicePart>)
+
+/**
  * Where the user wants a component to appear in the overview. Overrides the built-in catalogue
  * and also lets the user add components the catalogue does not know. Shared by all cars.
  * `key` is the name in lower case; `name` keeps the user's spelling.

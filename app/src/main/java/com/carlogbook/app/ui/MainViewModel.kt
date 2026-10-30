@@ -10,6 +10,8 @@ import com.carlogbook.app.data.CarDatabase
 import com.carlogbook.app.data.ComponentPlacement
 import com.carlogbook.app.data.GarageBackup
 import com.carlogbook.app.data.Service
+import com.carlogbook.app.data.ServiceDraft
+import com.carlogbook.app.data.ServicePart
 import com.carlogbook.app.domain.ReminderCalculator
 import com.carlogbook.app.domain.Upcoming
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val db = CarDatabase.get(app)
     private val carDao = db.carDao()
     private val serviceDao = db.serviceDao()
+    private val partDao = db.partDao()
     private val placementDao = db.placementDao()
 
     val cars: StateFlow<List<Car>> = carDao.observeAll()
@@ -62,16 +65,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { carDao.deleteById(id) }
     }
 
+    /** Parts and materials used for every service of a car, for the history views. */
+    fun parts(carId: Long): Flow<List<ServicePart>> = partDao.observeForCar(carId)
+
+    suspend fun getParts(serviceId: Long): List<ServicePart> = partDao.getForService(serviceId)
+
+    /** The parts you used the last time you did this job on this car, to prefill the form. */
+    suspend fun lastParts(carId: Long, jobName: String): List<ServicePart> {
+        val last = serviceDao.getForCar(carId)
+            .filter { it.jobName.equals(jobName.trim(), ignoreCase = true) }
+            .maxWithOrNull(compareBy<Service>({ it.dateEpochDay }, { it.odometerKm }, { it.id }))
+            ?: return emptyList()
+        return partDao.getForService(last.id)
+    }
+
     /**
-     * Saves one or more services logged together (same visit, same date and kilometres).
-     * If their kilometres are higher than the car's odometer, the odometer moves up too.
+     * Saves one or more services logged together (same visit, same date and kilometres),
+     * each with the parts used. If their kilometres are higher than the car's odometer, the odometer moves up too.
      */
-    fun saveServices(services: List<Service>) {
-        if (services.isEmpty()) return
+    fun saveServices(drafts: List<ServiceDraft>) {
+        if (drafts.isEmpty()) return
         viewModelScope.launch {
-            for (service in services) {
-                if (service.id == 0L) serviceDao.insert(service) else serviceDao.update(service)
-            }
+            for (draft in drafts) db.saveDraft(draft)
+            val services = drafts.map { it.service }
             val carId = services.first().carId
             val maxKm = services.maxOf { it.odometerKm }
             val car = carDao.get(carId)
