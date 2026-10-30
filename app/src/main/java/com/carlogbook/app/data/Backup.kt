@@ -1,5 +1,6 @@
 package com.carlogbook.app.data
 
+import com.carlogbook.app.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -111,18 +112,19 @@ object BackupCodec {
         return root.toString(2)
     }
 
-    /** Throws IllegalArgumentException with a readable message if the file is not a valid backup. */
+    /** Thrown when a file cannot be used as a backup; [messageRes] is the string to show the user. */
+    class InvalidBackup(val messageRes: Int) : IllegalArgumentException()
+
+    /** Throws [InvalidBackup] if the file is not a valid backup. */
     fun decode(json: String): GarageBackup {
         val root = try {
             JSONObject(json)
         } catch (e: Exception) {
-            throw IllegalArgumentException("This file is not a Car Logbook backup.")
+            throw InvalidBackup(R.string.backup_not_valid)
         }
-        require(root.optString("app") == APP_TAG) { "This file is not a Car Logbook backup." }
+        if (root.optString("app") != APP_TAG) throw InvalidBackup(R.string.backup_not_valid)
         val format = root.optInt("format", -1)
-        require(format in 1..FORMAT_VERSION) {
-            "This backup was made by a newer version of the app. Update the app first."
-        }
+        if (format !in 1..FORMAT_VERSION) throw InvalidBackup(R.string.backup_too_new)
 
         val cars = root.optJSONArray("cars") ?: JSONArray()
         val carList = List(cars.length()) { i ->

@@ -15,7 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.carlogbook.app.R
 import com.carlogbook.app.domain.ComponentStatus
 import com.carlogbook.app.domain.Fmt
 import com.carlogbook.app.domain.ReminderStatus
@@ -32,7 +34,7 @@ fun statusColor(status: ReminderStatus?): Color = when (status) {
 }
 
 /**
- * One component: its life bar when we know it, otherwise "Life unknown".
+ * One component: its life bar when we know it, otherwise "Life unknown" or "Replace when faulty".
  * [trailing] is an optional control shown at the end of the title row (for example a menu).
  */
 @Composable
@@ -43,33 +45,9 @@ fun ComponentCard(
 ) {
     val upcoming = status.upcoming
     when {
-        upcoming != null -> KnownComponentCard(status.component.name, upcoming, onClick, trailing)
+        upcoming != null -> KnownComponentCard(status.component.displayName, upcoming, onClick, trailing)
         status.component.wears -> UnknownComponentCard(status, onClick, trailing)
         else -> FixedComponentCard(status, onClick, trailing)
-    }
-}
-
-/** A part that works until it fails: no life to measure, just when it was last replaced. */
-@Composable
-private fun FixedComponentCard(
-    status: ComponentStatus,
-    onClick: (() -> Unit)?,
-    trailing: (@Composable () -> Unit)?
-) {
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    CardShell(MaterialTheme.colorScheme.surface, onClick) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(status.component.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text("Replace when faulty", style = MaterialTheme.typography.titleSmall, color = muted)
-            trailing?.invoke()
-        }
-        val last = status.lastService
-        Text(
-            if (last != null) "Last replaced ${Fmt.date(last.dateEpochDay)} at ${Fmt.km(last.odometerKm)}."
-            else "Never replaced.",
-            style = MaterialTheme.typography.bodySmall,
-            color = muted
-        )
     }
 }
 
@@ -102,7 +80,7 @@ private fun KnownComponentCard(
         )
         Text(lifeDetails(item), style = MaterialTheme.typography.bodySmall)
         Text(
-            "Last done ${Fmt.date(item.lastDoneDay)} at ${Fmt.km(item.lastDoneKm)}",
+            stringResource(R.string.last_done_at, Fmt.date(item.lastDoneDay), Fmt.km(item.lastDoneKm)),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -118,17 +96,41 @@ private fun UnknownComponentCard(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     CardShell(MaterialTheme.colorScheme.surface, onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(status.component.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text("Life unknown", style = MaterialTheme.typography.titleSmall, color = muted)
+            Text(status.component.displayName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.life_unknown), style = MaterialTheme.typography.titleSmall, color = muted)
             trailing?.invoke()
         }
         val last = status.lastService
         Text(
             if (last != null) {
-                "Last done ${Fmt.date(last.dateEpochDay)} at ${Fmt.km(last.odometerKm)}, no reminder interval set."
+                stringResource(R.string.last_done_no_interval, Fmt.date(last.dateEpochDay), Fmt.km(last.odometerKm))
             } else {
-                "Never logged. Add a service with “Every … km” or “Every … months” to track it."
+                stringResource(R.string.never_logged_hint)
             },
+            style = MaterialTheme.typography.bodySmall,
+            color = muted
+        )
+    }
+}
+
+/** A part that works until it fails: no life to measure, just when it was last replaced. */
+@Composable
+private fun FixedComponentCard(
+    status: ComponentStatus,
+    onClick: (() -> Unit)?,
+    trailing: (@Composable () -> Unit)?
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    CardShell(MaterialTheme.colorScheme.surface, onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(status.component.displayName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.replace_when_faulty), style = MaterialTheme.typography.titleSmall, color = muted)
+            trailing?.invoke()
+        }
+        val last = status.lastService
+        Text(
+            if (last != null) stringResource(R.string.last_replaced_at, Fmt.date(last.dateEpochDay), Fmt.km(last.odometerKm))
+            else stringResource(R.string.never_replaced),
             style = MaterialTheme.typography.bodySmall,
             color = muted
         )
@@ -149,8 +151,9 @@ private fun CardShell(container: Color, onClick: (() -> Unit)?, content: @Compos
 }
 
 /** The one number that matters most: whichever of km or time runs out first. */
+@Composable
 fun lifeHeadline(item: Upcoming): String {
-    if (item.status == ReminderStatus.OVERDUE) return "Overdue"
+    if (item.status == ReminderStatus.OVERDUE) return stringResource(R.string.overdue)
     val km = item.remainingKm
     val days = item.remainingDays
     val useKm = when {
@@ -158,24 +161,26 @@ fun lifeHeadline(item: Upcoming): String {
         days == null -> true
         else -> (item.kmLifeLeft ?: 1f) <= (item.timeLifeLeft ?: 1f)
     }
-    return if (useKm) "${Fmt.km(km!!)} left" else "${Fmt.span(days!!)} left"
+    return stringResource(R.string.km_left, if (useKm) Fmt.km(km!!) else Fmt.span(days!!))
 }
 
 /** Both limits spelled out, for example "6,000 km left (due at 90,000 km) · 3 months left (due 12 Mar 2027)". */
+@Composable
 fun lifeDetails(item: Upcoming): String {
     val parts = mutableListOf<String>()
     val km = item.remainingKm
     val dueKm = item.dueKm
     if (km != null && dueKm != null) {
-        parts += if (km <= 0) "overdue by ${Fmt.km(-km)}" else "${Fmt.km(km)} left (due at ${Fmt.km(dueKm)})"
+        parts += if (km <= 0) stringResource(R.string.fmt_overdue_by, Fmt.km(-km))
+        else stringResource(R.string.life_km_left_due, Fmt.km(km), Fmt.km(dueKm))
     }
     val days = item.remainingDays
     val dueDay = item.dueDay
     if (days != null && dueDay != null) {
         parts += when {
-            days < 0 -> "overdue by ${Fmt.span(-days)}"
-            days == 0L -> "due today"
-            else -> "${Fmt.span(days)} left (due ${Fmt.date(dueDay)})"
+            days < 0 -> stringResource(R.string.fmt_overdue_by, Fmt.span(-days))
+            days == 0L -> stringResource(R.string.fmt_due_today)
+            else -> stringResource(R.string.life_time_left_due, Fmt.span(days), Fmt.date(dueDay))
         }
     }
     return parts.joinToString(" · ").replaceFirstChar { it.uppercase() }

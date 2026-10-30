@@ -37,8 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.carlogbook.app.R
 import com.carlogbook.app.data.BackupCodec
 import com.carlogbook.app.data.GarageBackup
 import kotlinx.coroutines.launch
@@ -48,6 +51,7 @@ import kotlinx.coroutines.launch
 fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
     val cars by vm.cars.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
     var busy by remember { mutableStateOf(false) }
@@ -62,9 +66,9 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
             busy = true
             try {
                 val s = vm.exportBackup(uri)
-                snackbar.showSnackbar("Saved ${s.cars} cars and ${s.services} services.")
+                snackbar.showSnackbar(context.getString(R.string.saved_summary, s.cars, s.services))
             } catch (e: Exception) {
-                snackbar.showSnackbar("Export failed: ${e.message}")
+                snackbar.showSnackbar(context.getString(R.string.export_failed, e.message ?: ""))
             } finally {
                 busy = false
             }
@@ -81,7 +85,7 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
             try {
                 pendingRestore = vm.readBackup(uri)
             } catch (e: Exception) {
-                snackbar.showSnackbar(e.message ?: "Could not read this file.")
+                snackbar.showSnackbar(if (e is BackupCodec.InvalidBackup) context.getString(e.messageRes) else e.message ?: context.getString(R.string.could_not_read_file))
             } finally {
                 busy = false
             }
@@ -91,19 +95,18 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
     pendingRestore?.let { garage ->
         val services = garage.serviceCount
         ConfirmDialog(
-            title = "Restore this backup?",
-            message = "The backup contains ${garage.cars.size} cars and $services services.\n\n" +
-                "Your current garage (${cars.size} cars) will be replaced. This cannot be undone.",
-            confirmLabel = "Replace",
+            title = stringResource(R.string.restore_confirm_title),
+            message = stringResource(R.string.restore_confirm_message, garage.cars.size, services, cars.size),
+            confirmLabel = stringResource(R.string.replace),
             onConfirm = {
                 pendingRestore = null
                 scope.launch {
                     busy = true
                     try {
                         val s = vm.importBackup(garage)
-                        snackbar.showSnackbar("Restored ${s.cars} cars and ${s.services} services.")
+                        snackbar.showSnackbar(context.getString(R.string.restored_summary, s.cars, s.services))
                     } catch (e: Exception) {
-                        snackbar.showSnackbar("Restore failed: ${e.message}")
+                        snackbar.showSnackbar(context.getString(R.string.restore_failed, e.message ?: ""))
                     } finally {
                         busy = false
                     }
@@ -116,10 +119,10 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Backup and restore") },
+                title = { Text(stringResource(R.string.backup_and_restore)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -136,10 +139,9 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
         ) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Export", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.export), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Saves all your cars and their service history to one file. " +
-                            "Keep it in Downloads, on an SD card or in a cloud folder.",
+                        stringResource(R.string.export_hint),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(Modifier.height(4.dp))
@@ -150,19 +152,19 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
                     ) {
                         Icon(Icons.Default.Upload, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Export garage")
+                        Text(stringResource(R.string.export_garage))
                     }
                     if (cars.isEmpty()) {
-                        Text("Nothing to export yet.", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.nothing_to_export), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
 
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Restore", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.restore), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Loads a backup file and replaces everything currently in the app.",
+                        stringResource(R.string.restore_hint),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(Modifier.height(4.dp))
@@ -173,7 +175,7 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Restore from file")
+                        Text(stringResource(R.string.restore_from_file))
                     }
                 }
             }
@@ -183,8 +185,7 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
             }
 
             Text(
-                "Updates installed through the app keep your data. A backup protects you when you " +
-                    "change phone, reinstall the app, or delete something by mistake.",
+                stringResource(R.string.backup_footer),
                 style = MaterialTheme.typography.bodySmall
             )
         }

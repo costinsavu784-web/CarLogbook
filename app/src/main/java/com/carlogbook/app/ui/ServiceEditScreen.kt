@@ -52,12 +52,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.carlogbook.app.R
 import com.carlogbook.app.data.Service
 import com.carlogbook.app.data.ServiceDraft
 import com.carlogbook.app.data.ServicePart
+import com.carlogbook.app.domain.Catalog
 import com.carlogbook.app.domain.Fmt
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -133,6 +136,9 @@ fun ServiceEditScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
 
+    /** Same component already in the list, in any spelling or language? */
+    fun hasJob(name: String) = jobs.any { Catalog.componentKey(it.name) == Catalog.componentKey(name) }
+
     /** Builds a job entry prefilled with the interval and parts used last time for this job. */
     suspend fun prefilledJob(name: String): JobEntry {
         val last = vm.lastInterval(carId, name)
@@ -178,23 +184,24 @@ fun ServiceEditScreen(
     fun addJob(rawName: String) {
         val name = rawName.trim()
         jobInput = ""
-        if (name.isEmpty() || jobs.any { it.name.equals(name, ignoreCase = true) }) return
+        if (name.isEmpty() || hasJob(name)) return
         scope.launch {
             val entry = prefilledJob(name)
-            if (jobs.none { it.name.equals(name, ignoreCase = true) }) jobs.add(entry)
+            if (!hasJob(name)) jobs.add(entry)
         }
     }
 
     val usedNames by vm.jobNames.collectAsStateWithLifecycle()
     val placed by vm.placements.collectAsStateWithLifecycle()
-    val suggestions = (usedNames + placed.map { it.name } + DefaultJobNames)
-        .distinctBy { it.lowercase() }
-        .filter { name -> jobs.none { it.name.equals(name, ignoreCase = true) } }
+    val suggestions = (DefaultJobNames + placed.map { it.name } + usedNames.map { jobLabel(it) })
+        .distinctBy { Catalog.componentKey(it) }
+        .filter { name -> !hasJob(name) }
         .filter { jobInput.isBlank() || it.contains(jobInput, ignoreCase = true) }
         .take(15)
 
     val odometerValue = odometer.toIntOrNull()
     val canSave = jobs.isNotEmpty() && jobs.all { it.name.isNotBlank() } && odometerValue != null
+    val defaultPartName = stringResource(R.string.part_default_name)
 
     if (showDatePicker) {
         val pickerState = rememberDatePickerState(initialSelectedDateMillis = dateDay * MILLIS_PER_DAY)
@@ -204,9 +211,9 @@ fun ServiceEditScreen(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { dateDay = Math.floorDiv(it, MILLIS_PER_DAY) }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } }
         ) {
             DatePicker(state = pickerState)
         }
@@ -214,9 +221,9 @@ fun ServiceEditScreen(
 
     if (showDelete) {
         ConfirmDialog(
-            title = "Delete this service?",
-            message = "This entry and its parts list will be removed from the history.",
-            confirmLabel = "Delete",
+            title = stringResource(R.string.delete_service_title),
+            message = stringResource(R.string.delete_service_message),
+            confirmLabel = stringResource(R.string.delete),
             onConfirm = {
                 vm.deleteService(serviceId)
                 showDelete = false
@@ -229,10 +236,10 @@ fun ServiceEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isNew) "Add service" else "Edit service") },
+                title = { Text(stringResource(if (isNew) R.string.add_service else R.string.edit_service)) },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -247,7 +254,7 @@ fun ServiceEditScreen(
         ) {
             // ---- Step 1: what was done -------------------------------------------------------
             if (isNew) {
-                Text("What did you do?", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.what_did_you_do), style = MaterialTheme.typography.titleSmall)
 
                 if (jobs.isNotEmpty()) {
                     FlowRow(
@@ -255,11 +262,12 @@ fun ServiceEditScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         jobs.forEach { job ->
+                            val label = jobLabel(job.name)
                             InputChip(
                                 selected = true,
                                 onClick = { jobs.remove(job) },
-                                label = { Text(job.name) },
-                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = "Remove ${job.name}") }
+                                label = { Text(label) },
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = stringResource(R.string.remove_job, label)) }
                             )
                         }
                     }
@@ -268,15 +276,15 @@ fun ServiceEditScreen(
                 OutlinedTextField(
                     value = jobInput,
                     onValueChange = { jobInput = it },
-                    label = { Text(if (jobs.isEmpty()) "Job" else "Add another job") },
-                    placeholder = { Text("For example: Brake pads") },
+                    label = { Text(stringResource(if (jobs.isEmpty()) R.string.job else R.string.add_another_job)) },
+                    placeholder = { Text(stringResource(R.string.job_hint)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { addJob(jobInput) }),
                     trailingIcon = {
                         if (jobInput.isNotBlank()) {
                             IconButton(onClick = { addJob(jobInput) }) {
-                                Icon(Icons.Default.Add, contentDescription = "Add job")
+                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_job))
                             }
                         }
                     },
@@ -295,7 +303,7 @@ fun ServiceEditScreen(
                 OutlinedTextField(
                     value = job.name,
                     onValueChange = { new -> if (jobs.isNotEmpty()) jobs[0] = job.copy(name = new) },
-                    label = { Text("What did you do?") },
+                    label = { Text(stringResource(R.string.what_did_you_do)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -305,20 +313,20 @@ fun ServiceEditScreen(
             OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.CalendarMonth, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Date: ${Fmt.date(dateDay)}")
+                Text(stringResource(R.string.date_is, Fmt.date(dateDay)))
             }
 
             NumberField(
                 value = odometer,
                 onChange = { odometer = it },
-                label = "Odometer (km)",
+                label = stringResource(R.string.odometer_km),
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Notes (optional)") },
+                label = { Text(stringResource(R.string.notes_optional)) },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -326,12 +334,12 @@ fun ServiceEditScreen(
             // ---- Step 3: details per job ----------------------------------------------------
             if (jobs.isNotEmpty()) {
                 Text(
-                    "Details for each job",
+                    stringResource(R.string.details_per_job),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(top = 8.dp)
                 )
                 Text(
-                    "Parts and numbers are remembered: next time you do the same job they come back prefilled.",
+                    stringResource(R.string.details_per_job_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -367,7 +375,7 @@ fun ServiceEditScreen(
                                     .map {
                                         ServicePart(
                                             serviceId = 0,
-                                            name = it.name.trim().ifEmpty { "Part" },
+                                            name = it.name.trim().ifEmpty { defaultPartName },
                                             quantity = it.quantity.trim(),
                                             oemNumber = it.oem.trim(),
                                             supplierNumber = it.supplier.trim()
@@ -384,12 +392,15 @@ fun ServiceEditScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp)
             ) {
-                Text(if (jobs.size > 1) "Save ${jobs.size} services" else "Save service")
+                Text(
+                    if (jobs.size > 1) stringResource(R.string.save_n_services, jobs.size)
+                    else stringResource(R.string.save_service)
+                )
             }
 
             if (!isNew) {
                 TextButton(onClick = { showDelete = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Delete this service", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete_this_service), color = MaterialTheme.colorScheme.error)
                 }
             }
 
@@ -410,49 +421,47 @@ private fun JobDetailsCard(
     val monthsInterval = job.intervalMonths.toIntOrNull()?.takeIf { it > 0 }
 
     val nextDue = buildList {
-        if (kmInterval != null && odometerValue != null) add("at ${Fmt.km(odometerValue + kmInterval)}")
+        if (kmInterval != null && odometerValue != null) add(stringResource(R.string.next_due_at_km, Fmt.km(odometerValue + kmInterval)))
         if (monthsInterval != null) {
             val day = LocalDate.ofEpochDay(dateDay).plusMonths(monthsInterval.toLong()).toEpochDay()
-            add("on ${Fmt.date(day)}")
+            add(stringResource(R.string.next_due_on_date, Fmt.date(day)))
         }
-    }.joinToString(" or ")
+    }.joinToString(" ${stringResource(R.string.or)} ")
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(job.name, style = MaterialTheme.typography.titleMedium)
+            Text(jobLabel(job.name), style = MaterialTheme.typography.titleMedium)
 
-            // Reminder
-            Text("Remind me for the next one (optional)", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.remind_next), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 NumberField(
                     value = job.intervalKm,
                     onChange = { onChange(job.copy(intervalKm = it)) },
-                    label = "Every … km",
+                    label = stringResource(R.string.every_km),
                     maxLength = 6,
                     modifier = Modifier.weight(1f)
                 )
                 NumberField(
                     value = job.intervalMonths,
                     onChange = { onChange(job.copy(intervalMonths = it)) },
-                    label = "Every … months",
+                    label = stringResource(R.string.every_months),
                     maxLength = 3,
                     modifier = Modifier.weight(1f)
                 )
             }
             if (nextDue.isNotEmpty()) {
                 Text(
-                    "Next due $nextDue, whichever comes first.",
+                    stringResource(R.string.next_due, nextDue),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            // Parts
             Text(
-                "Parts and materials used (optional)",
+                stringResource(R.string.parts_used),
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -470,7 +479,7 @@ private fun JobDetailsCard(
             TextButton(onClick = { onChange(job.copy(parts = job.parts + PartEntry())) }) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
-                Text(if (job.parts.isEmpty()) "Add part" else "Add another part")
+                Text(stringResource(if (job.parts.isEmpty()) R.string.add_part else R.string.add_another_part))
             }
         }
     }
@@ -487,28 +496,28 @@ private fun PartEditor(part: PartEntry, onChange: (PartEntry) -> Unit, onRemove:
                 OutlinedTextField(
                     value = part.name,
                     onValueChange = { onChange(part.copy(name = it)) },
-                    label = { Text("Part or material") },
-                    placeholder = { Text("Engine oil 5W-30") },
+                    label = { Text(stringResource(R.string.part_or_material)) },
+                    placeholder = { Text(stringResource(R.string.part_hint)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onRemove) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove part")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_part))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(end = 8.dp)) {
                 OutlinedTextField(
                     value = part.quantity,
                     onValueChange = { onChange(part.copy(quantity = it)) },
-                    label = { Text("Quantity") },
-                    placeholder = { Text("6.5 L") },
+                    label = { Text(stringResource(R.string.quantity)) },
+                    placeholder = { Text(stringResource(R.string.quantity_hint)) },
                     singleLine = true,
                     modifier = Modifier.weight(0.6f)
                 )
                 OutlinedTextField(
                     value = part.oem,
                     onValueChange = { onChange(part.copy(oem = it)) },
-                    label = { Text("OEM number") },
+                    label = { Text(stringResource(R.string.oem_number)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -516,8 +525,8 @@ private fun PartEditor(part: PartEntry, onChange: (PartEntry) -> Unit, onRemove:
             OutlinedTextField(
                 value = part.supplier,
                 onValueChange = { onChange(part.copy(supplier = it)) },
-                label = { Text("Supplier / aftermarket number") },
-                placeholder = { Text("Mann HU 8007 z") },
+                label = { Text(stringResource(R.string.supplier_number)) },
+                placeholder = { Text(stringResource(R.string.supplier_hint)) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()

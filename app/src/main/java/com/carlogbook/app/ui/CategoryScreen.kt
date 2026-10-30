@@ -36,14 +36,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.carlogbook.app.R
 import com.carlogbook.app.domain.Catalog
 import com.carlogbook.app.domain.ComponentStatus
 
 /**
  * Every component in one category for one car, each with its life or "Life unknown".
- * Components can be moved to another category or added here.
+ * Components can be moved to another category, retyped, or added here.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,10 +74,10 @@ fun CategoryScreen(
         val isMoved = placements.any { it.key == name.lowercase() && it.categoryId.isNotEmpty() }
         val builtInHome = Catalog.homeCategoryOf(name)
         MoveDialog(
-            componentName = name,
+            componentLabel = status.component.displayName,
             currentCategoryId = categoryId,
             canReset = isMoved,
-            resetLabel = builtInHome?.let { "Back to ${it.name}" } ?: "Back to Other",
+            resetLabel = stringResource(R.string.back_to_category, builtInHome?.displayName ?: stringResource(R.string.cat_other)),
             onMove = { target ->
                 vm.placeComponent(name, target)
                 moving = null
@@ -90,8 +92,8 @@ fun CategoryScreen(
 
     if (adding) {
         AddComponentDialog(
-            categoryName = category?.category?.name ?: "",
-            existingNames = statuses.flatMap { s -> s.components.map { it.component.name } },
+            categoryName = category?.category?.displayName ?: "",
+            existingNames = statuses.flatMap { s -> s.components.flatMap { listOf(it.component.name, it.component.displayName) } },
             onAdd = { name, wears ->
                 vm.placeComponent(name, categoryId, wears)
                 adding = false
@@ -103,10 +105,10 @@ fun CategoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(category?.category?.name ?: "") },
+                title = { Text(category?.category?.displayName ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -116,7 +118,7 @@ fun CategoryScreen(
                 ExtendedFloatingActionButton(
                     onClick = { adding = true },
                     icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    text = { Text("Add component") }
+                    text = { Text(stringResource(R.string.add_component)) }
                 )
             }
         }
@@ -131,11 +133,7 @@ fun CategoryScreen(
         ) {
             item(key = "hint") {
                 Text(
-                    if (isOther) {
-                        "Jobs that are not in any category. Tap one to see its history, or use ⋮ to file it where you want it."
-                    } else {
-                        "Tap a component to see its history and log a service. Use ⋮ to move it or change its type."
-                    },
+                    stringResource(if (isOther) R.string.category_hint_other else R.string.category_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -165,18 +163,18 @@ fun CategoryScreen(
 private fun ComponentMenu(wears: Boolean, onMove: () -> Unit, onToggleWears: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     IconButton(onClick = { open = true }) {
-        Icon(Icons.Default.MoreVert, contentDescription = "More")
+        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.more))
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
         DropdownMenuItem(
-            text = { Text("Move to another category") },
+            text = { Text(stringResource(R.string.move_to_category)) },
             onClick = {
                 open = false
                 onMove()
             }
         )
         DropdownMenuItem(
-            text = { Text(if (wears) "Mark as “replace when faulty”" else "Mark as wear part") },
+            text = { Text(stringResource(if (wears) R.string.mark_fail_only else R.string.mark_wear)) },
             onClick = {
                 open = false
                 onToggleWears()
@@ -187,7 +185,7 @@ private fun ComponentMenu(wears: Boolean, onMove: () -> Unit, onToggleWears: () 
 
 @Composable
 private fun MoveDialog(
-    componentName: String,
+    componentLabel: String,
     currentCategoryId: String,
     canReset: Boolean,
     resetLabel: String,
@@ -199,7 +197,7 @@ private fun MoveDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Move “$componentName”") },
+        title = { Text(stringResource(R.string.move_title, componentLabel)) },
         text = {
             Column {
                 Catalog.categories.forEach { cat ->
@@ -211,7 +209,7 @@ private fun MoveDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = selected == cat.id, onClick = { selected = cat.id })
-                        Text(cat.name)
+                        Text(cat.displayName)
                     }
                 }
             }
@@ -220,14 +218,14 @@ private fun MoveDialog(
             TextButton(
                 onClick = { onMove(selected) },
                 enabled = selected != currentCategoryId
-            ) { Text("Move") }
+            ) { Text(stringResource(R.string.move)) }
         },
         dismissButton = {
             Row {
                 if (canReset) {
                     TextButton(onClick = onReset) { Text(resetLabel) }
                 }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
             }
         }
     )
@@ -247,18 +245,18 @@ private fun AddComponentDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add component to $categoryName") },
+        title = { Text(stringResource(R.string.add_component_to, categoryName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Component name") },
-                    placeholder = { Text("For example: Intercooler") },
+                    label = { Text(stringResource(R.string.component_name)) },
+                    placeholder = { Text(stringResource(R.string.component_name_hint)) },
                     singleLine = true,
                     isError = duplicate,
                     supportingText = if (duplicate) {
-                        { Text("A component with this name already exists.") }
+                        { Text(stringResource(R.string.component_exists)) }
                     } else {
                         null
                     },
@@ -269,10 +267,9 @@ private fun AddComponentDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Wears out", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.wears_out), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            if (wears) "Used up over km or time, like oil or pads. Shows a life bar."
-                            else "Works until it fails, like a sensor. No life bar.",
+                            stringResource(if (wears) R.string.wears_out_yes else R.string.wears_out_no),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -282,8 +279,10 @@ private fun AddComponentDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onAdd(clean, wears) }, enabled = clean.isNotEmpty() && !duplicate) { Text("Add") }
+            TextButton(onClick = { onAdd(clean, wears) }, enabled = clean.isNotEmpty() && !duplicate) {
+                Text(stringResource(R.string.add))
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

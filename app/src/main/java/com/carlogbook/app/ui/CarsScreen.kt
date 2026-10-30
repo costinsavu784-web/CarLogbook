@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,10 +33,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.carlogbook.app.R
 import com.carlogbook.app.data.Car
 import com.carlogbook.app.domain.Fmt
 import com.carlogbook.app.update.UpdateCard
@@ -49,7 +52,8 @@ fun CarsScreen(
     onOpenCar: (Long) -> Unit,
     onAddCar: () -> Unit,
     onEditCar: (Long) -> Unit,
-    onBackup: () -> Unit
+    onBackup: () -> Unit,
+    onSettings: () -> Unit
 ) {
     val cars by vm.cars.collectAsStateWithLifecycle()
     val updateVm: UpdateViewModel = viewModel()
@@ -59,13 +63,16 @@ fun CarsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My garage") },
+                title = { Text(stringResource(R.string.my_garage)) },
                 actions = {
                     IconButton(onClick = onBackup) {
-                        Icon(Icons.Default.SaveAlt, contentDescription = "Backup and restore")
+                        Icon(Icons.Default.SaveAlt, contentDescription = stringResource(R.string.backup_and_restore))
                     }
                     IconButton(onClick = updateVm::checkNow, enabled = updateState !is UpdateState.Checking) {
-                        Icon(Icons.Default.SystemUpdate, contentDescription = "Check for updates")
+                        Icon(Icons.Default.SystemUpdate, contentDescription = stringResource(R.string.check_for_updates))
+                    }
+                    IconButton(onClick = onSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
                     }
                 }
             )
@@ -74,7 +81,7 @@ fun CarsScreen(
             ExtendedFloatingActionButton(
                 onClick = onAddCar,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add car") }
+                text = { Text(stringResource(R.string.add_car)) }
             )
         }
     ) { padding ->
@@ -87,7 +94,7 @@ fun CarsScreen(
                 UpdateCard(updateState, updateVm, Modifier.padding(16.dp))
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "No cars yet.\nTap “Add car” to start your logbook.",
+                        text = stringResource(R.string.no_cars_yet),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(32.dp)
                     )
@@ -143,7 +150,7 @@ private fun CarCard(car: Car, onOpen: () -> Unit, onEdit: () -> Unit) {
                 )
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit car")
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_car))
             }
         }
     }

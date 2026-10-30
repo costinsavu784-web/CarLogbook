@@ -51,7 +51,7 @@ class UpdateViewModel(app: Application) : AndroidViewModel(app) {
                 UpdateChecker.markChecked(ctx)
                 _state.value = if (update != null) UpdateState.Available(update) else UpdateState.UpToDate
             } catch (e: Exception) {
-                _state.value = UpdateState.Failed(e.message ?: "Could not reach GitHub")
+                _state.value = UpdateState.Failed(e.message ?: ctx.getString(com.carlogbook.app.R.string.update_unreachable))
             }
         }
     }
@@ -67,7 +67,7 @@ class UpdateViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 _state.value = UpdateState.ReadyToInstall(update, apk)
             } catch (e: Exception) {
-                _state.value = UpdateState.Failed(e.message ?: "Download failed")
+                _state.value = UpdateState.Failed(e.message ?: ctx.getString(com.carlogbook.app.R.string.update_download_failed))
             }
         }
     }

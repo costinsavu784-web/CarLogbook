@@ -1,0 +1,293 @@
+<resources>
+    <string name="app_name">Car Logbook</string>
+
+    <!-- Common -->
+    <string name="back">Indietro</string>
+    <string name="cancel">Annulla</string>
+    <string name="save">Salva</string>
+    <string name="ok">OK</string>
+    <string name="edit">Modifica</string>
+    <string name="delete">Elimina</string>
+    <string name="later">Più tardi</string>
+    <string name="dismiss">Chiudi</string>
+    <string name="retry">Riprova</string>
+    <string name="add_service">Aggiungi intervento</string>
+    <string name="add_car">Aggiungi auto</string>
+    <string name="edit_car">Modifica auto</string>
+    <string name="history">Storico</string>
+    <string name="overview">Panoramica</string>
+    <string name="notes_optional">Note (facoltative)</string>
+    <string name="odometer_km">Chilometraggio (km)</string>
+    <string name="kilometres">Chilometri</string>
+
+    <!-- Garage -->
+    <string name="my_garage">Il mio garage</string>
+    <string name="no_cars_yet">Nessuna auto.\nTocca “Aggiungi auto” per iniziare il libretto.</string>
+    <string name="backup_and_restore">Backup e ripristino</string>
+    <string name="check_for_updates">Controlla aggiornamenti</string>
+    <string name="settings">Impostazioni</string>
+
+    <!-- Settings -->
+    <string name="language">Lingua</string>
+    <string name="language_system">Come il telefono</string>
+    <string name="language_en">English</string>
+    <string name="language_it">Italiano</string>
+    <string name="settings_about">Versione %1$s</string>
+
+    <!-- Car edit -->
+    <string name="delete_car_title">Eliminare questa auto?</string>
+    <string name="delete_car_message">L’auto e tutto il suo storico interventi verranno eliminati definitivamente.</string>
+    <string name="car_name">Nome</string>
+    <string name="car_name_hint">Per esempio: La mia BMW 320d</string>
+    <string name="make">Marca</string>
+    <string name="model">Modello</string>
+    <string name="year">Anno</string>
+    <string name="warn_before_due">Avvisami prima di una scadenza</string>
+    <string name="km_before">km prima</string>
+    <string name="days_before">giorni prima</string>
+    <string name="save_car">Salva auto</string>
+    <string name="delete_this_car">Elimina questa auto</string>
+
+    <!-- Car screen -->
+    <string name="send_reminders_now">Invia ora i promemoria in scadenza</string>
+    <string name="checking_reminders">Controllo promemoria…</string>
+    <string name="components">Componenti</string>
+    <string name="overview_hint_empty">Nessun intervento registrato. Apri una categoria per vedere i componenti, oppure tocca “Aggiungi intervento”.</string>
+    <string name="current_odometer">Chilometraggio attuale</string>
+    <string name="updated_on">Aggiornato il %1$s</string>
+    <string name="update_km">Aggiorna km</string>
+    <string name="update_odometer">Aggiorna chilometraggio</string>
+    <string name="no_services_yet">Nessun intervento registrato.\nTocca “Aggiungi intervento” per inserire il primo.</string>
+    <string name="repeat_every">Ripeti %1$s</string>
+    <string name="every_x">ogni %1$s</string>
+    <string name="or">oppure</string>
+    <string name="and">e</string>
+    <string name="oem_prefix">OEM %1$s</string>
+
+    <!-- Category summary -->
+    <string name="cat_summary_no_wear">Nessun componente d’usura, %1$d da sostituire a guasto</string>
+    <string name="cat_summary_all_unknown">Durata sconosciuta per tutti i %1$d componenti d’usura</string>
+    <string name="cat_summary_unknown_suffix">%1$d sconosciuti</string>
+
+    <!-- Component cards -->
+    <string name="life_unknown">Durata sconosciuta</string>
+    <string name="replace_when_faulty">Sostituire a guasto</string>
+    <string name="overdue">Scaduto</string>
+    <string name="km_left">%1$s rimanenti</string>
+    <string name="last_done_at">Ultimo intervento %1$s a %2$s</string>
+    <string name="last_done_no_interval">Ultimo intervento %1$s a %2$s, nessun intervallo impostato.</string>
+    <string name="never_logged_hint">Mai registrato. Aggiungi un intervento con “Ogni … km” o “Ogni … mesi” per monitorarlo.</string>
+    <string name="last_replaced_at">Ultima sostituzione %1$s a %2$s.</string>
+    <string name="never_replaced">Mai sostituito.</string>
+    <string name="life_km_left_due">%1$s rimanenti (scadenza a %2$s)</string>
+    <string name="life_time_left_due">%1$s rimanenti (scadenza %2$s)</string>
+
+    <!-- Category screen -->
+    <string name="category_hint_other">Interventi non assegnati a nessuna categoria. Toccane uno per vedere lo storico, oppure usa ⋮ per spostarlo dove vuoi.</string>
+    <string name="category_hint">Tocca un componente per vedere lo storico e registrare un intervento. Usa ⋮ per spostarlo o cambiarne il tipo.</string>
+    <string name="add_component">Aggiungi componente</string>
+    <string name="more">Altro</string>
+    <string name="move_to_category">Sposta in un’altra categoria</string>
+    <string name="mark_fail_only">Segna come “sostituire a guasto”</string>
+    <string name="mark_wear">Segna come componente d’usura</string>
+    <string name="move_title">Sposta “%1$s”</string>
+    <string name="move">Sposta</string>
+    <string name="back_to_category">Torna in %1$s</string>
+    <string name="add_component_to">Aggiungi componente a %1$s</string>
+    <string name="component_name">Nome componente</string>
+    <string name="component_name_hint">Per esempio: Intercooler</string>
+    <string name="component_exists">Esiste già un componente con questo nome.</string>
+    <string name="wears_out">Si usura</string>
+    <string name="wears_out_yes">Si consuma con i km o il tempo, come olio o pastiglie. Mostra la barra di durata.</string>
+    <string name="wears_out_no">Funziona finché non si guasta, come un sensore. Nessuna barra di durata.</string>
+    <string name="add">Aggiungi</string>
+
+    <!-- Component screen -->
+    <string name="component_history_empty">Nessun intervento registrato per questo componente.\nTocca “Aggiungi intervento” per inserire il primo.</string>
+    <string name="currently_mounted">Attualmente montato</string>
+    <string name="mounted_editing">Modifica ciò che è montato ora.</string>
+    <string name="mounted_user_set">Impostato da te.</string>
+    <string name="mounted_from_service">Dall’ultimo intervento, %1$s.</string>
+    <string name="mounted_unknown">Sconosciuto. Nessun ricambio registrato.</string>
+    <string name="add_part">Aggiungi ricambio</string>
+    <string name="add_another_part">Aggiungi un altro ricambio</string>
+    <string name="use_last_service">Usa ultimo intervento</string>
+    <string name="part_or_material">Ricambio o materiale</string>
+    <string name="part_hint">Olio motore 5W-30</string>
+    <string name="part_default_name">Ricambio</string>
+    <string name="remove_part">Rimuovi ricambio</string>
+    <string name="quantity">Quantità</string>
+    <string name="quantity_hint">6,5 L</string>
+    <string name="oem_number">Codice OEM</string>
+    <string name="supplier_number">Codice fornitore / aftermarket</string>
+    <string name="supplier_hint">Mann HU 8007 z</string>
+    <string name="times_done">Interventi</string>
+    <string name="avg_every">In media ogni</string>
+    <string name="after_previous">%1$s dopo il precedente</string>
+
+    <!-- Service form -->
+    <string name="edit_service">Modifica intervento</string>
+    <string name="delete_service_title">Eliminare questo intervento?</string>
+    <string name="delete_service_message">La voce e la sua lista ricambi verranno rimossi dallo storico.</string>
+    <string name="what_did_you_do">Cosa hai fatto?</string>
+    <string name="job">Intervento</string>
+    <string name="add_another_job">Aggiungi un altro intervento</string>
+    <string name="job_hint">Per esempio: Pastiglie freni</string>
+    <string name="add_job">Aggiungi intervento</string>
+    <string name="remove_job">Rimuovi %1$s</string>
+    <string name="date_is">Data: %1$s</string>
+    <string name="details_per_job">Dettagli per ogni intervento</string>
+    <string name="details_per_job_hint">Ricambi e codici vengono ricordati: la prossima volta che fai lo stesso intervento li ritrovi già compilati.</string>
+    <string name="remind_next">Ricordamelo per la prossima volta (facoltativo)</string>
+    <string name="every_km">Ogni … km</string>
+    <string name="every_months">Ogni … mesi</string>
+    <string name="next_due">Prossima scadenza %1$s, quella che arriva prima.</string>
+    <string name="next_due_at_km">a %1$s</string>
+    <string name="next_due_on_date">il %1$s</string>
+    <string name="parts_used">Ricambi e materiali usati (facoltativo)</string>
+    <string name="save_service">Salva intervento</string>
+    <string name="save_n_services">Salva %1$d interventi</string>
+    <string name="delete_this_service">Elimina questo intervento</string>
+
+    <!-- Backup -->
+    <string name="export">Esporta</string>
+    <string name="export_hint">Salva tutte le auto e il loro storico in un unico file. Tienilo in Download, su una scheda SD o in una cartella cloud.</string>
+    <string name="export_garage">Esporta garage</string>
+    <string name="nothing_to_export">Niente da esportare.</string>
+    <string name="restore">Ripristina</string>
+    <string name="restore_hint">Carica un file di backup e sostituisce tutto ciò che è nell’app.</string>
+    <string name="restore_from_file">Ripristina da file</string>
+    <string name="backup_footer">Gli aggiornamenti installati dall’app conservano i dati. Un backup ti protegge quando cambi telefono, reinstalli l’app o cancelli qualcosa per sbaglio.</string>
+    <string name="saved_summary">Salvate %1$d auto e %2$d interventi.</string>
+    <string name="restored_summary">Ripristinate %1$d auto e %2$d interventi.</string>
+    <string name="export_failed">Esportazione non riuscita: %1$s</string>
+    <string name="restore_failed">Ripristino non riuscito: %1$s</string>
+    <string name="could_not_read_file">Impossibile leggere questo file.</string>
+    <string name="restore_confirm_title">Ripristinare questo backup?</string>
+    <string name="restore_confirm_message">Il backup contiene %1$d auto e %2$d interventi.\n\nIl garage attuale (%3$d auto) verrà sostituito. L’operazione non può essere annullata.</string>
+    <string name="replace">Sostituisci</string>
+    <string name="backup_not_valid">Questo file non è un backup di Car Logbook.</string>
+    <string name="backup_too_new">Questo backup è stato creato da una versione più recente dell’app. Aggiorna prima l’app.</string>
+
+    <!-- Updates -->
+    <string name="update_checking">Controllo aggiornamenti…</string>
+    <string name="update_latest">Hai l’ultima versione.</string>
+    <string name="update_available">È disponibile la versione %1$s</string>
+    <string name="download">Scarica</string>
+    <string name="update_downloading">Scaricamento versione %1$s…</string>
+    <string name="update_downloaded">Versione %1$s scaricata</string>
+    <string name="update_install_hint">Android ti chiederà di confermare l’installazione.</string>
+    <string name="install">Installa</string>
+    <string name="update_permission_hint">Per installare gli aggiornamenti, consenti a Car Logbook di installare app. Serve una volta sola.</string>
+    <string name="open_settings">Apri impostazioni</string>
+    <string name="update_failed">Controllo aggiornamenti non riuscito</string>
+    <string name="update_unreachable">Impossibile raggiungere GitHub</string>
+    <string name="update_download_failed">Download non riuscito</string>
+
+    <!-- Notifications -->
+    <string name="channel_name">Promemoria interventi</string>
+    <string name="channel_description">Ti avvisa quando un intervento su una delle tue auto è in scadenza o scaduto.</string>
+    <string name="notif_update_km_title">Aggiorna i chilometri · %1$s</string>
+    <string name="notif_update_km_text">Il chilometraggio è stato aggiornato %1$d giorni fa. Inserisci i km attuali per mantenere precisi i promemoria.</string>
+
+    <!-- Fmt -->
+    <string name="fmt_overdue_by">scaduto da %1$s</string>
+    <string name="fmt_due_now_km">in scadenza ora per chilometri</string>
+    <string name="fmt_due_today">scade oggi</string>
+    <string name="fmt_in_km_at">tra %1$s (a %2$s)</string>
+    <string name="fmt_in_time_on">tra %1$s (%2$s)</string>
+    <plurals name="days">
+        <item quantity="one">%d giorno</item>
+        <item quantity="other">%d giorni</item>
+    </plurals>
+    <plurals name="weeks">
+        <item quantity="one">%d settimana</item>
+        <item quantity="other">%d settimane</item>
+    </plurals>
+    <plurals name="months">
+        <item quantity="one">%d mese</item>
+        <item quantity="other">%d mesi</item>
+    </plurals>
+
+    <!-- Categories -->
+    <string name="cat_engine">Motore</string>
+    <string name="cat_brakes">Freni</string>
+    <string name="cat_suspension">Sospensioni e sterzo</string>
+    <string name="cat_gearbox">Cambio e trasmissione</string>
+    <string name="cat_tyres">Pneumatici e ruote</string>
+    <string name="cat_electrical">Impianto elettrico</string>
+    <string name="cat_climate">Clima e abitacolo</string>
+    <string name="cat_exhaust">Scarico ed emissioni</string>
+    <string name="cat_body">Carrozzeria e documenti</string>
+    <string name="cat_other">Altro</string>
+
+    <!-- Components -->
+    <string name="comp_engine_oil">Olio motore</string>
+    <string name="comp_oil_filter">Filtro olio</string>
+    <string name="comp_air_filter">Filtro aria</string>
+    <string name="comp_fuel_filter">Filtro carburante</string>
+    <string name="comp_spark_plugs">Candele</string>
+    <string name="comp_glow_plugs">Candelette</string>
+    <string name="comp_timing_belt">Cinghia distribuzione</string>
+    <string name="comp_timing_chain">Catena distribuzione</string>
+    <string name="comp_aux_belt">Cinghia servizi</string>
+    <string name="comp_coolant">Liquido refrigerante</string>
+    <string name="comp_thermostat">Termostato</string>
+    <string name="comp_water_pump">Pompa acqua</string>
+    <string name="comp_turbo">Turbocompressore</string>
+    <string name="comp_engine_mounts">Supporti motore</string>
+    <string name="comp_injectors">Iniettori</string>
+    <string name="comp_brake_pads_front">Pastiglie freni (anteriori)</string>
+    <string name="comp_brake_pads_rear">Pastiglie freni (posteriori)</string>
+    <string name="comp_brake_discs_front">Dischi freni (anteriori)</string>
+    <string name="comp_brake_discs_rear">Dischi freni (posteriori)</string>
+    <string name="comp_brake_fluid">Liquido freni</string>
+    <string name="comp_brake_lines">Tubi freni</string>
+    <string name="comp_handbrake">Freno a mano</string>
+    <string name="comp_shocks_front">Ammortizzatori (anteriori)</string>
+    <string name="comp_shocks_rear">Ammortizzatori (posteriori)</string>
+    <string name="comp_springs">Molle</string>
+    <string name="comp_control_arms">Bracci oscillanti</string>
+    <string name="comp_ball_joints">Testine sfera</string>
+    <string name="comp_tie_rod_ends">Testine sterzo</string>
+    <string name="comp_arb_links">Biellette barra stabilizzatrice</string>
+    <string name="comp_bushings">Boccole</string>
+    <string name="comp_wheel_bearings">Cuscinetti ruota</string>
+    <string name="comp_wheel_alignment">Convergenza</string>
+    <string name="comp_ps_fluid">Olio servosterzo</string>
+    <string name="comp_gearbox_oil">Olio cambio</string>
+    <string name="comp_clutch">Frizione</string>
+    <string name="comp_dmf">Volano bimassa</string>
+    <string name="comp_diff_oil">Olio differenziale</string>
+    <string name="comp_driveshafts">Semiassi</string>
+    <string name="comp_cv_boots">Cuffie semiassi</string>
+    <string name="comp_transfer_oil">Olio ripartitore</string>
+    <string name="comp_tyres_front">Pneumatici (anteriori)</string>
+    <string name="comp_tyres_rear">Pneumatici (posteriori)</string>
+    <string name="comp_tyre_rotation">Rotazione pneumatici</string>
+    <string name="comp_wheel_balancing">Equilibratura</string>
+    <string name="comp_spare_tyre">Ruota di scorta</string>
+    <string name="comp_battery">Batteria</string>
+    <string name="comp_alternator">Alternatore</string>
+    <string name="comp_starter">Motorino d’avviamento</string>
+    <string name="comp_bulbs">Lampadine fari</string>
+    <string name="comp_wipers">Spazzole tergicristallo</string>
+    <string name="comp_key_battery">Batteria chiave</string>
+    <string name="comp_cabin_filter">Filtro abitacolo</string>
+    <string name="comp_ac_refrigerant">Gas climatizzatore</string>
+    <string name="comp_ac_compressor">Compressore clima</string>
+    <string name="comp_heater">Riscaldamento</string>
+    <string name="comp_exhaust">Scarico</string>
+    <string name="comp_cat">Catalizzatore</string>
+    <string name="comp_dpf">Filtro antiparticolato</string>
+    <string name="comp_egr">Valvola EGR</string>
+    <string name="comp_lambda">Sonda lambda</string>
+    <string name="comp_adblue">AdBlue</string>
+    <string name="comp_service_inspection">Tagliando</string>
+    <string name="comp_technical_inspection">Revisione</string>
+    <string name="comp_insurance">Assicurazione</string>
+    <string name="comp_road_tax">Bollo</string>
+    <string name="comp_windscreen">Parabrezza</string>
+    <string name="comp_washer_fluid">Liquido lavavetri</string>
+    <string name="comp_rust_protection">Trattamento antiruggine</string>
+</resources>

@@ -38,9 +38,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.carlogbook.app.R
 import com.carlogbook.app.data.MountedPart
 import com.carlogbook.app.data.Service
 import com.carlogbook.app.data.ServicePart
@@ -50,8 +52,8 @@ import com.carlogbook.app.domain.ComponentStatus
 import com.carlogbook.app.domain.Fmt
 
 /**
- * One component on one car: where it stands today, a few numbers about how often it has been
- * done, and every service ever logged for it.
+ * One component on one car: where it stands today, what is mounted, a few numbers about how
+ * often it has been done, and every service ever logged for it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +90,6 @@ fun ComponentScreen(
     val mountedFlow = remember(carId) { vm.mounted(carId) }
     val allMounted by mountedFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val mountedOverride = remember(allMounted, componentKey) { allMounted.filter { it.componentKey == componentKey } }
-    // The most recent service that actually recorded parts (an older entry may have them when the newest does not).
     val lastServiceWithParts = remember(history, partsByService) {
         history.firstOrNull { partsByService[it.id]?.isNotEmpty() == true }
     }
@@ -99,10 +100,10 @@ fun ComponentScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(component.name) },
+                title = { Text(component.displayName) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -111,7 +112,7 @@ fun ComponentScreen(
             ExtendedFloatingActionButton(
                 onClick = onAddService,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add service") }
+                text = { Text(stringResource(R.string.add_service)) }
             )
         }
     ) { padding ->
@@ -129,17 +130,17 @@ fun ComponentScreen(
                     userSet = mountedOverride,
                     fromLastService = lastServiceParts,
                     lastService = lastServiceWithParts,
-                    onSave = { parts -> vm.setMounted(carId, component.name, parts) }
+                    onSave = { list -> vm.setMounted(carId, component.name, list) }
                 )
             }
 
-            if (history.size >= 1) {
+            if (history.isNotEmpty()) {
                 item(key = "stats") { StatsCard(history) }
             }
 
             item(key = "history-title") {
                 Text(
-                    "History",
+                    stringResource(R.string.history),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 4.dp)
                 )
@@ -153,15 +154,11 @@ fun ComponentScreen(
                             .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "Nothing logged for this component yet.\nTap “Add service” to record the first one.",
-                            textAlign = TextAlign.Center
-                        )
+                        Text(stringResource(R.string.component_history_empty), textAlign = TextAlign.Center)
                     }
                 }
             } else {
                 itemsIndexed(history, key = { _, s -> s.id }) { index, service ->
-                    // Distance and time since the previous time this was done (the next, older entry).
                     val previous = history.getOrNull(index + 1)
                     HistoryRow(
                         service = service,
@@ -185,10 +182,6 @@ private data class MountedEntry(
     val isBlank: Boolean get() = name.isBlank() && quantity.isBlank() && oem.isBlank() && supplier.isBlank()
 }
 
-/**
- * "Currently mounted": what is fitted right now. Shows the user's own list when set, otherwise the
- * parts from the last service. Tap Edit to change it in place.
- */
 @Composable
 private fun MountedCard(
     userSet: List<MountedPart>,
@@ -198,6 +191,7 @@ private fun MountedCard(
 ) {
     var editing by remember { mutableStateOf(false) }
     val entries = remember { mutableStateListOf<MountedEntry>() }
+    val defaultPartName = stringResource(R.string.part_default_name)
 
     val isUserSet = userSet.isNotEmpty()
     val shown: List<String> = if (isUserSet) {
@@ -221,14 +215,14 @@ private fun MountedCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Currently mounted", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.currently_mounted), style = MaterialTheme.typography.titleMedium)
                     Text(
                         when {
-                            editing -> "Edit what is on the car now."
-                            isUserSet -> "Set by you."
+                            editing -> stringResource(R.string.mounted_editing)
+                            isUserSet -> stringResource(R.string.mounted_user_set)
                             lastService != null && fromLastService.isNotEmpty() ->
-                                "From the last service, ${Fmt.date(lastService.dateEpochDay)}."
-                            else -> "Unknown. No parts recorded yet."
+                                stringResource(R.string.mounted_from_service, Fmt.date(lastService.dateEpochDay))
+                            else -> stringResource(R.string.mounted_unknown)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -238,7 +232,7 @@ private fun MountedCard(
                     TextButton(onClick = { startEditing() }) {
                         Icon(Icons.Default.Edit, contentDescription = null)
                         Spacer(Modifier.width(4.dp))
-                        Text("Edit")
+                        Text(stringResource(R.string.edit))
                     }
                 }
             }
@@ -256,22 +250,22 @@ private fun MountedCard(
                 TextButton(onClick = { entries.add(MountedEntry()) }) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
-                    Text("Add part")
+                    Text(stringResource(R.string.add_part))
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     if (isUserSet) {
                         TextButton(onClick = {
                             onSave(emptyList())
                             editing = false
-                        }) { Text("Use last service") }
+                        }) { Text(stringResource(R.string.use_last_service)) }
                     }
-                    TextButton(onClick = { editing = false }) { Text("Cancel") }
+                    TextButton(onClick = { editing = false }) { Text(stringResource(R.string.cancel)) }
                     TextButton(onClick = {
                         onSave(
                             entries.filter { !it.isBlank }.map {
                                 MountedPart(
                                     carId = 0, componentKey = "",
-                                    name = it.name.trim().ifEmpty { "Part" },
+                                    name = it.name.trim().ifEmpty { defaultPartName },
                                     quantity = it.quantity.trim(),
                                     oemNumber = it.oem.trim(),
                                     supplierNumber = it.supplier.trim()
@@ -279,21 +273,12 @@ private fun MountedCard(
                             }
                         )
                         editing = false
-                    }) { Text("Save") }
+                    }) { Text(stringResource(R.string.save)) }
                 }
             }
         }
     }
 }
-
-/** "Oil filter · 1 · OEM 11 42 8 583 898 · Mann HU 8007 z", skipping blanks. */
-private fun partLine(name: String, quantity: String, oem: String, supplier: String): String =
-    listOfNotNull(
-        name.ifBlank { null },
-        quantity.ifBlank { null },
-        oem.ifBlank { null }?.let { "OEM $it" },
-        supplier.ifBlank { null }
-    ).joinToString(" · ")
 
 @Composable
 private fun MountedEditor(entry: MountedEntry, onChange: (MountedEntry) -> Unit, onRemove: () -> Unit) {
@@ -302,26 +287,26 @@ private fun MountedEditor(entry: MountedEntry, onChange: (MountedEntry) -> Unit,
             OutlinedTextField(
                 value = entry.name,
                 onValueChange = { onChange(entry.copy(name = it)) },
-                label = { Text("Part or material") },
+                label = { Text(stringResource(R.string.part_or_material)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onRemove) {
-                Icon(Icons.Default.Delete, contentDescription = "Remove part")
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove_part))
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = entry.quantity,
                 onValueChange = { onChange(entry.copy(quantity = it)) },
-                label = { Text("Quantity") },
+                label = { Text(stringResource(R.string.quantity)) },
                 singleLine = true,
                 modifier = Modifier.weight(0.6f)
             )
             OutlinedTextField(
                 value = entry.oem,
                 onValueChange = { onChange(entry.copy(oem = it)) },
-                label = { Text("OEM number") },
+                label = { Text(stringResource(R.string.oem_number)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
@@ -329,7 +314,7 @@ private fun MountedEditor(entry: MountedEntry, onChange: (MountedEntry) -> Unit,
         OutlinedTextField(
             value = entry.supplier,
             onValueChange = { onChange(entry.copy(supplier = it)) },
-            label = { Text("Supplier / aftermarket number") },
+            label = { Text(stringResource(R.string.supplier_number)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -355,9 +340,9 @@ private fun StatsCard(history: List<Service>) {
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Stat("Times done", sorted.size.toString())
-            Stat("Avg. every", avgKm?.takeIf { it > 0 }?.let { Fmt.km(it) } ?: "—")
-            Stat("Avg. every", avgDays?.takeIf { it > 0 }?.let { Fmt.span(it) } ?: "—")
+            Stat(stringResource(R.string.times_done), sorted.size.toString())
+            Stat(stringResource(R.string.avg_every), avgKm?.takeIf { it > 0 }?.let { Fmt.km(it) } ?: "—")
+            Stat(stringResource(R.string.avg_every), avgDays?.takeIf { it > 0 }?.let { Fmt.span(it) } ?: "—")
         }
     }
 }
@@ -393,19 +378,16 @@ private fun HistoryRow(service: Service, parts: List<ServicePart>, previous: Ser
                     )
                     if (gap.isNotEmpty()) {
                         Text(
-                            "${gap.joinToString(" and ")} after the previous one",
+                            stringResource(R.string.after_previous, gap.joinToString(" ${stringResource(R.string.and)} ")),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                val repeat = listOfNotNull(
-                    service.intervalKm?.let { "every ${Fmt.km(it)}" },
-                    service.intervalMonths?.let { "every $it months" }
-                ).joinToString(" or ")
+                val repeat = repeatText(service)
                 if (repeat.isNotEmpty()) {
-                    Text("Repeat $repeat", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Text(repeat, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
 
                 PartsSummary(parts)
@@ -416,7 +398,7 @@ private fun HistoryRow(service: Service, parts: List<ServicePart>, previous: Ser
             }
             Icon(
                 Icons.Default.ChevronRight,
-                contentDescription = "Edit",
+                contentDescription = stringResource(R.string.edit),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

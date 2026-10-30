@@ -7,7 +7,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.carlogbook.app.AppLocale
+import com.carlogbook.app.R
 import com.carlogbook.app.data.CarDatabase
+import com.carlogbook.app.domain.Catalog
 import com.carlogbook.app.domain.Fmt
 import com.carlogbook.app.domain.ReminderCalculator
 import com.carlogbook.app.domain.ReminderStatus
@@ -20,6 +23,7 @@ import java.util.concurrent.TimeUnit
 class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
+        val ctx = AppLocale.wrap(applicationContext)
         val db = CarDatabase.get(applicationContext)
         val today = LocalDate.now()
 
@@ -29,10 +33,11 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
             val due = ReminderCalculator.compute(car, services, today)
                 .filter { it.status != ReminderStatus.OK }
             for (item in due) {
+                val label = Catalog.builtInComponentFor(item.jobName)?.displayName ?: item.jobName
                 Notifications.show(
-                    context = applicationContext,
+                    context = ctx,
                     id = "${car.id}:${item.jobName.lowercase()}".hashCode(),
-                    title = "${item.jobName} · ${car.name}",
+                    title = "$label · ${car.name}",
                     text = Fmt.describe(item).replaceFirstChar { it.uppercase() }
                 )
             }
@@ -42,11 +47,10 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
             val daysSinceUpdate = today.toEpochDay() - car.lastOdometerUpdateDay
             if (usesKmReminders && daysSinceUpdate >= ODOMETER_NUDGE_DAYS) {
                 Notifications.show(
-                    context = applicationContext,
+                    context = ctx,
                     id = "odo:${car.id}".hashCode(),
-                    title = "Update the kilometres · ${car.name}",
-                    text = "Your odometer was last updated $daysSinceUpdate days ago. " +
-                        "Enter the current kilometres so the reminders stay accurate."
+                    title = ctx.getString(R.string.notif_update_km_title, car.name),
+                    text = ctx.getString(R.string.notif_update_km_text, daysSinceUpdate.toInt())
                 )
             }
         }

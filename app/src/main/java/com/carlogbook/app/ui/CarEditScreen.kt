@@ -28,7 +28,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.carlogbook.app.R
 import com.carlogbook.app.data.Car
 import java.time.LocalDate
 
@@ -78,9 +80,9 @@ fun CarEditScreen(
 
     if (showDelete) {
         ConfirmDialog(
-            title = "Delete this car?",
-            message = "The car and its whole service history will be permanently deleted.",
-            confirmLabel = "Delete",
+            title = stringResource(R.string.delete_car_title),
+            message = stringResource(R.string.delete_car_message),
+            confirmLabel = stringResource(R.string.delete),
             onConfirm = {
                 vm.deleteCar(carId)
                 showDelete = false
@@ -93,10 +95,10 @@ fun CarEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isNew) "Add car" else "Edit car") },
+                title = { Text(stringResource(if (isNew) R.string.add_car else R.string.edit_car)) },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -112,8 +114,8 @@ fun CarEditScreen(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Name") },
-                placeholder = { Text("For example: My BMW 320d") },
+                label = { Text(stringResource(R.string.car_name)) },
+                placeholder = { Text(stringResource(R.string.car_name_hint)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -122,14 +124,14 @@ fun CarEditScreen(
                 OutlinedTextField(
                     value = make,
                     onValueChange = { make = it },
-                    label = { Text("Make") },
+                    label = { Text(stringResource(R.string.make)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = model,
                     onValueChange = { model = it },
-                    label = { Text("Model") },
+                    label = { Text(stringResource(R.string.model)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
@@ -139,20 +141,20 @@ fun CarEditScreen(
                 NumberField(
                     value = year,
                     onChange = { year = it },
-                    label = "Year",
+                    label = stringResource(R.string.year),
                     maxLength = 4,
                     modifier = Modifier.weight(1f)
                 )
                 NumberField(
                     value = odometer,
                     onChange = { odometer = it },
-                    label = "Odometer (km)",
+                    label = stringResource(R.string.odometer_km),
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Text(
-                "Warn me before a service is due",
+                stringResource(R.string.warn_before_due),
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -160,14 +162,14 @@ fun CarEditScreen(
                 NumberField(
                     value = warnKm,
                     onChange = { warnKm = it },
-                    label = "km before",
+                    label = stringResource(R.string.km_before),
                     maxLength = 5,
                     modifier = Modifier.weight(1f)
                 )
                 NumberField(
                     value = warnDays,
                     onChange = { warnDays = it },
-                    label = "days before",
+                    label = stringResource(R.string.days_before),
                     maxLength = 3,
                     modifier = Modifier.weight(1f)
                 )
@@ -208,13 +210,13 @@ fun CarEditScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
-            ) { Text("Save car") }
+            ) { Text(stringResource(R.string.save_car)) }
 
             if (!isNew) {
                 TextButton(
                     onClick = { showDelete = true },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Delete this car", color = MaterialTheme.colorScheme.error) }
+                ) { Text(stringResource(R.string.delete_this_car), color = MaterialTheme.colorScheme.error) }
             }
 
             Spacer(Modifier.padding(bottom = 24.dp))

@@ -75,8 +75,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The parts you used the last time you did this job on this car, to prefill the form. */
     suspend fun lastParts(carId: Long, jobName: String): List<ServicePart> {
+        val key = Catalog.componentKey(jobName)
         val last = serviceDao.getForCar(carId)
-            .filter { it.jobName.equals(jobName.trim(), ignoreCase = true) }
+            .filter { Catalog.componentKey(it.jobName) == key }
             .maxWithOrNull(compareBy<Service>({ it.dateEpochDay }, { it.odometerKm }, { it.id }))
             ?: return emptyList()
         return partDao.getForService(last.id)
@@ -113,11 +114,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The reminder interval you last used for this job on this car, to prefill the form. */
-    suspend fun lastInterval(carId: Long, jobName: String): Service? =
-        serviceDao.getForCar(carId)
-            .filter { it.jobName.equals(jobName.trim(), ignoreCase = true) }
+    suspend fun lastInterval(carId: Long, jobName: String): Service? {
+        val key = Catalog.componentKey(jobName)
+        return serviceDao.getForCar(carId)
+            .filter { Catalog.componentKey(it.jobName) == key }
             .filter { it.intervalKm != null || it.intervalMonths != null }
             .maxWithOrNull(compareBy<Service>({ it.dateEpochDay }, { it.odometerKm }, { it.id }))
+    }
 
     fun deleteService(id: Long) {
         viewModelScope.launch { serviceDao.deleteById(id) }

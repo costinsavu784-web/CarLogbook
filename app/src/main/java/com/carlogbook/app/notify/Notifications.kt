@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.carlogbook.app.MainActivity
+import com.carlogbook.app.R
 
 object Notifications {
     const val CHANNEL_ID = "service_reminders"
@@ -19,10 +20,10 @@ object Notifications {
     fun createChannel(context: Context) {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Service reminders",
+            context.getString(R.string.channel_name),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Tells you when a service on one of your cars is coming up or overdue."
+            description = context.getString(R.string.channel_description)
         }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }

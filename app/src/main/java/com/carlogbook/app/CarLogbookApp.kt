@@ -7,7 +7,7 @@ import com.carlogbook.app.notify.ReminderScheduler
 class CarLogbookApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        Notifications.createChannel(this)
+        Notifications.createChannel(AppLocale.wrap(this))
         ReminderScheduler.schedule(this)
     }
 }

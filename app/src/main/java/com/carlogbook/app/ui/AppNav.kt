@@ -41,8 +41,13 @@ fun AppNav(vm: MainViewModel = viewModel()) {
                 onOpenCar = { nav.navigate("history/$it") },
                 onAddCar = { nav.navigate("car_edit/0") },
                 onEditCar = { nav.navigate("car_edit/$it") },
-                onBackup = { nav.navigate("backup") }
+                onBackup = { nav.navigate("backup") },
+                onSettings = { nav.navigate("settings") }
             )
+        }
+
+        composable("settings") {
+            SettingsScreen(onBack = { nav.popBackStack() })
         }
 
         composable(
@@ -94,7 +99,8 @@ fun AppNav(vm: MainViewModel = viewModel()) {
                 carId = carId,
                 componentName = name,
                 onBack = { nav.popBackStack() },
-                onAddService = { nav.navigate("service_edit/$carId/0?job=${Uri.encode(name)}") },
+                // Prefill the form with the translated label; matching maps it back to the component.
+                onAddService = { nav.navigate("service_edit/$carId/0?job=${Uri.encode(jobLabel(name))}") },
                 onEditService = { serviceId -> nav.navigate("service_edit/$carId/$serviceId") }
             )
         }

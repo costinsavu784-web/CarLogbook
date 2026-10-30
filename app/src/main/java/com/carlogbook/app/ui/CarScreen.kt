@@ -1,6 +1,7 @@
 package com.carlogbook.app.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,11 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,10 +51,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.carlogbook.app.R
 import com.carlogbook.app.data.Car
 import com.carlogbook.app.data.LastCar
 import com.carlogbook.app.data.Service
@@ -112,6 +114,8 @@ fun CarScreen(
         )
     }
 
+    val checkingToast = stringResource(R.string.checking_reminders)
+
     Scaffold(
         topBar = {
             Column {
@@ -119,24 +123,24 @@ fun CarScreen(
                     title = { Text(currentCar?.name ?: "") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     },
                     actions = {
                         IconButton(onClick = {
                             ReminderScheduler.runNow(context)
-                            Toast.makeText(context, "Checking reminders…", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, checkingToast, Toast.LENGTH_SHORT).show()
                         }) {
-                            Icon(Icons.Default.NotificationsActive, contentDescription = "Send due reminders now")
+                            Icon(Icons.Default.NotificationsActive, contentDescription = stringResource(R.string.send_reminders_now))
                         }
                         IconButton(onClick = onEditCar) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit car")
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_car))
                         }
                     }
                 )
                 TabRow(selectedTabIndex = tab) {
-                    Tab(selected = tab == TAB_OVERVIEW, onClick = { tab = TAB_OVERVIEW }, text = { Text("Overview") })
-                    Tab(selected = tab == TAB_HISTORY, onClick = { tab = TAB_HISTORY }, text = { Text("History") })
+                    Tab(selected = tab == TAB_OVERVIEW, onClick = { tab = TAB_OVERVIEW }, text = { Text(stringResource(R.string.overview)) })
+                    Tab(selected = tab == TAB_HISTORY, onClick = { tab = TAB_HISTORY }, text = { Text(stringResource(R.string.history)) })
                 }
             }
         },
@@ -144,7 +148,7 @@ fun CarScreen(
             ExtendedFloatingActionButton(
                 onClick = onAddService,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add service") }
+                text = { Text(stringResource(R.string.add_service)) }
             )
         }
     ) { padding ->
@@ -191,7 +195,7 @@ private fun OverviewTab(
 
         item(key = "title") {
             Text(
-                "Components",
+                stringResource(R.string.components),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -199,7 +203,7 @@ private fun OverviewTab(
         if (!hasServices) {
             item(key = "hint") {
                 Text(
-                    "Nothing logged yet. Open a category to see its parts, or tap “Add service”.",
+                    stringResource(R.string.overview_hint_empty),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -218,17 +222,16 @@ private fun CategoryCard(cat: CategoryStatus, onClick: () -> Unit) {
     val color = statusColor(worst)
     val knownCount = cat.known.size
     val total = cat.components.size
-
     val unknownCount = cat.unknown.size
     val wearCount = cat.wearParts.size
 
     val summary = when {
-        wearCount == 0 -> "No wear parts, $total replace-when-faulty"
-        knownCount == 0 -> "Life unknown for all $wearCount wear parts"
+        wearCount == 0 -> stringResource(R.string.cat_summary_no_wear, total)
+        knownCount == 0 -> stringResource(R.string.cat_summary_all_unknown, wearCount)
         else -> {
             val urgent = cat.mostUrgent!!
-            val head = "${urgent.component.name}: ${lifeHeadline(urgent.upcoming!!).lowercase()}"
-            if (unknownCount > 0) "$head · $unknownCount unknown" else head
+            val head = "${urgent.component.displayName}: ${lifeHeadline(urgent.upcoming!!).lowercase()}"
+            if (unknownCount > 0) "$head · ${stringResource(R.string.cat_summary_unknown_suffix, unknownCount)}" else head
         }
     }
 
@@ -245,7 +248,7 @@ private fun CategoryCard(cat: CategoryStatus, onClick: () -> Unit) {
             )
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(cat.category.name, style = MaterialTheme.typography.titleMedium)
+                Text(cat.category.displayName, style = MaterialTheme.typography.titleMedium)
                 Text(
                     summary,
                     style = MaterialTheme.typography.bodySmall,
@@ -278,14 +281,14 @@ private fun OdometerCard(car: Car, onUpdate: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Current odometer", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.current_odometer), style = MaterialTheme.typography.labelMedium)
                 Text(Fmt.km(car.currentOdometerKm), style = MaterialTheme.typography.headlineSmall)
-                Text("Updated ${Fmt.date(car.lastOdometerUpdateDay)}", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.updated_on, Fmt.date(car.lastOdometerUpdateDay)), style = MaterialTheme.typography.bodySmall)
             }
             FilledTonalButton(onClick = onUpdate) {
                 Icon(Icons.Default.Speed, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Update km")
+                Text(stringResource(R.string.update_km))
             }
         }
     }
@@ -309,10 +312,7 @@ private fun HistoryTab(
                 .padding(32.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                "No services logged yet.\nTap “Add service” to log the first one.",
-                textAlign = TextAlign.Center
-            )
+            Text(stringResource(R.string.no_services_yet), textAlign = TextAlign.Center)
         }
         return
     }
@@ -379,18 +379,11 @@ private fun JobRow(service: Service, parts: List<ServicePart>, showNotes: Boolea
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(service.jobName, style = MaterialTheme.typography.titleMedium)
+            Text(jobLabel(service.jobName), style = MaterialTheme.typography.titleMedium)
 
-            val repeat = listOfNotNull(
-                service.intervalKm?.let { "every ${Fmt.km(it)}" },
-                service.intervalMonths?.let { "every $it months" }
-            ).joinToString(" or ")
+            val repeat = repeatText(service)
             if (repeat.isNotEmpty()) {
-                Text(
-                    "Repeat $repeat",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Text(repeat, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
 
             PartsSummary(parts)
@@ -406,26 +399,30 @@ private fun JobRow(service: Service, parts: List<ServicePart>, showNotes: Boolea
         }
         Icon(
             Icons.Default.ChevronRight,
-            contentDescription = "Edit ${service.jobName}",
+            contentDescription = stringResource(R.string.edit),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
-/** Parts used, one per line: "Oil filter · 1 · OEM 11 42 8 583 898 · Mann HU 8007 z". */
+/** "Oil filter · 1 · OEM 11 42 8 583 898 · Mann HU 8007 z", skipping blanks. */
+@Composable
+fun partLine(name: String, quantity: String, oem: String, supplier: String): String =
+    listOfNotNull(
+        name.ifBlank { null },
+        quantity.ifBlank { null },
+        oem.ifBlank { null }?.let { stringResource(R.string.oem_prefix, it) },
+        supplier.ifBlank { null }
+    ).joinToString(" · ")
+
+/** Parts used, one per line. */
 @Composable
 fun PartsSummary(parts: List<ServicePart>) {
     if (parts.isEmpty()) return
     Column {
         parts.forEach { p ->
-            val line = listOfNotNull(
-                p.name.ifBlank { null },
-                p.quantity.ifBlank { null },
-                p.oemNumber.ifBlank { null }?.let { "OEM $it" },
-                p.supplierNumber.ifBlank { null }
-            ).joinToString(" · ")
             Text(
-                line,
+                partLine(p.name, p.quantity, p.oemNumber, p.supplierNumber),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -440,12 +437,12 @@ private fun OdometerDialog(current: Int, onDismiss: () -> Unit, onSave: (Int) ->
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Update odometer") },
+        title = { Text(stringResource(R.string.update_odometer)) },
         text = {
             NumberField(
                 value = text,
                 onChange = { text = it },
-                label = "Kilometres",
+                label = stringResource(R.string.kilometres),
                 modifier = Modifier.fillMaxWidth()
             )
         },
@@ -453,8 +450,8 @@ private fun OdometerDialog(current: Int, onDismiss: () -> Unit, onSave: (Int) ->
             TextButton(
                 onClick = { if (value != null) onSave(value) },
                 enabled = value != null
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }

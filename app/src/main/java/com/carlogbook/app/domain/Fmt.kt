@@ -1,27 +1,40 @@
 package com.carlogbook.app.domain
 
+import android.content.Context
+import android.content.res.Resources
+import com.carlogbook.app.R
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-/** Small helpers to show dates, kilometres and reminders as readable text. */
+/**
+ * Small helpers to show dates, kilometres and reminders as readable text in the current language.
+ * Call [attach] with a locale-aware context before use (AppLocale.wrap does this).
+ */
 object Fmt {
-    private val dateFormatter: DateTimeFormatter =
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+    private var res: Resources? = null
 
-    fun date(epochDay: Long): String = LocalDate.ofEpochDay(epochDay).format(dateFormatter)
+    fun attach(context: Context) {
+        res = context.resources
+    }
+
+    private fun str(id: Int, vararg args: Any): String = res?.getString(id, *args) ?: ""
+    private fun qty(id: Int, n: Int): String = res?.getQuantityString(id, n, n) ?: n.toString()
+
+    fun date(epochDay: Long): String =
+        LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 
     fun km(value: Int): String = NumberFormat.getIntegerInstance().format(value) + " km"
 
-    private fun plural(n: Long, unit: String): String = if (n == 1L) "1 $unit" else "$n ${unit}s"
-
     /** A number of days as "5 days", "3 weeks" or "4 months". */
     fun span(days: Long): String = when {
-        days < 14 -> plural(days, "day")
-        days < 60 -> plural(days / 7, "week")
-        else -> plural(days / 30, "month")
+        days < 14 -> qty(R.plurals.days, days.toInt())
+        days < 60 -> qty(R.plurals.weeks, (days / 7).toInt())
+        else -> qty(R.plurals.months, (days / 30).toInt())
     }
+
+    fun months(n: Int): String = qty(R.plurals.months, n)
 
     /** For example: "in 1,200 km (at 61,200 km) · in 3 weeks (12 Mar 2027)". */
     fun describe(u: Upcoming): String {
@@ -31,9 +44,9 @@ object Fmt {
         val dueKm = u.dueKm
         if (remainingKm != null && dueKm != null) {
             parts += when {
-                remainingKm < 0 -> "overdue by ${km(-remainingKm)}"
-                remainingKm == 0 -> "due now by kilometres"
-                else -> "in ${km(remainingKm)} (at ${km(dueKm)})"
+                remainingKm < 0 -> str(R.string.fmt_overdue_by, km(-remainingKm))
+                remainingKm == 0 -> str(R.string.fmt_due_now_km)
+                else -> str(R.string.fmt_in_km_at, km(remainingKm), km(dueKm))
             }
         }
 
@@ -41,9 +54,9 @@ object Fmt {
         val dueDay = u.dueDay
         if (remainingDays != null && dueDay != null) {
             parts += when {
-                remainingDays < 0 -> "overdue by ${span(-remainingDays)}"
-                remainingDays == 0L -> "due today"
-                else -> "in ${span(remainingDays)} (${date(dueDay)})"
+                remainingDays < 0 -> str(R.string.fmt_overdue_by, span(-remainingDays))
+                remainingDays == 0L -> str(R.string.fmt_due_today)
+                else -> str(R.string.fmt_in_time_on, span(remainingDays), date(dueDay))
             }
         }
 
