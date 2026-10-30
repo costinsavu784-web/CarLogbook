@@ -76,6 +76,9 @@ interface PlacementDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(placements: List<ComponentPlacement>)
 
+    @Query("SELECT * FROM component_placements WHERE `key` = :key")
+    suspend fun get(key: String): ComponentPlacement?
+
     @Query("DELETE FROM component_placements WHERE `key` = :key")
     suspend fun delete(key: String)
 

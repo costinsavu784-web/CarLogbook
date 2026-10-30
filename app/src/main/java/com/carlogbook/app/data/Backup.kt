@@ -69,7 +69,12 @@ object BackupCodec {
 
         val placements = JSONArray()
         for (p in backup.placements) {
-            placements.put(JSONObject().put("name", p.name).put("category", p.categoryId))
+            placements.put(
+                JSONObject()
+                    .put("name", p.name)
+                    .put("category", p.categoryId)
+                    .putOpt("wears", p.wears)
+            )
         }
         root.put("placements", placements)
 
@@ -122,7 +127,12 @@ object BackupCodec {
         val placementList = List(placements.length()) { i ->
             val p = placements.getJSONObject(i)
             val name = p.getString("name").trim()
-            ComponentPlacement(key = name.lowercase(), name = name, categoryId = p.getString("category"))
+            ComponentPlacement(
+                key = name.lowercase(),
+                name = name,
+                categoryId = p.optString("category"),
+                wears = if (p.has("wears") && !p.isNull("wears")) p.getBoolean("wears") else null
+            )
         }.filter { it.name.isNotEmpty() }
 
         return GarageBackup(carList, placementList)

@@ -57,5 +57,8 @@ data class Service(
 data class ComponentPlacement(
     @PrimaryKey val key: String,
     val name: String,
-    val categoryId: String
+    /** Empty string means "keep the built-in category" (only the wear flag is overridden). */
+    val categoryId: String,
+    /** null = use the catalogue default; true = wears out over km/time; false = works until it fails. */
+    val wears: Boolean? = null
 )

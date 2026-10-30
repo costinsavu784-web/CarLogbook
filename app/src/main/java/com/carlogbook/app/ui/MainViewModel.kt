@@ -128,18 +128,59 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val placements: StateFlow<List<ComponentPlacement>> = placementDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** Files a component (existing or brand new) under the given category. */
-    fun placeComponent(name: String, categoryId: String) {
+    /** Files a component (existing or brand new) under the given category, keeping any wear override. */
+    fun placeComponent(name: String, categoryId: String, wears: Boolean? = null) {
         val clean = name.trim()
         if (clean.isEmpty()) return
         viewModelScope.launch {
-            placementDao.upsert(ComponentPlacement(key = clean.lowercase(), name = clean, categoryId = categoryId))
+            val existing = placementDao.get(clean.lowercase())
+            placementDao.upsert(
+                ComponentPlacement(
+                    key = clean.lowercase(),
+                    name = clean,
+                    categoryId = categoryId,
+                    wears = wears ?: existing?.wears
+                )
+            )
         }
     }
 
-    /** Removes the user's placement so the component goes back to its built-in category (or Other). */
+    /**
+     * Marks a component as wearing out (true) or as working until it fails (false).
+     * The category placement, if any, is kept; otherwise the component stays where it is.
+     */
+    fun setComponentWears(name: String, wears: Boolean) {
+        val clean = name.trim()
+        if (clean.isEmpty()) return
+        viewModelScope.launch {
+            val existing = placementDao.get(clean.lowercase())
+            val builtIn = com.carlogbook.app.domain.Catalog.builtInComponentFor(clean)
+            // Back to the catalogue default and no category move: nothing left to store.
+            if (builtIn != null && builtIn.wears == wears && existing?.categoryId.isNullOrEmpty()) {
+                if (existing != null) placementDao.delete(existing.key)
+                return@launch
+            }
+            placementDao.upsert(
+                ComponentPlacement(
+                    key = clean.lowercase(),
+                    name = existing?.name ?: clean,
+                    categoryId = existing?.categoryId ?: "",
+                    wears = wears
+                )
+            )
+        }
+    }
+
+    /** Undoes a category move. The wear override, if any, is kept. */
     fun resetPlacement(name: String) {
-        viewModelScope.launch { placementDao.delete(name.trim().lowercase()) }
+        viewModelScope.launch {
+            val existing = placementDao.get(name.trim().lowercase()) ?: return@launch
+            if (existing.wears == null) {
+                placementDao.delete(existing.key)
+            } else {
+                placementDao.upsert(existing.copy(categoryId = ""))
+            }
+        }
     }
 
     fun updateOdometer(carId: Long, km: Int) {

@@ -8,7 +8,7 @@ import androidx.room.migration.Migration
 import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Car::class, Service::class, ComponentPlacement::class], version = 2, exportSchema = false)
+@Database(entities = [Car::class, Service::class, ComponentPlacement::class], version = 3, exportSchema = false)
 abstract class CarDatabase : RoomDatabase() {
     abstract fun carDao(): CarDao
     abstract fun serviceDao(): ServiceDao
@@ -44,8 +44,15 @@ abstract class CarDatabase : RoomDatabase() {
                     context.applicationContext,
                     CarDatabase::class.java,
                     "carlogbook.db"
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
+
+        /** Version 3 lets a placement override whether a component wears out. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `component_placements` ADD COLUMN `wears` INTEGER")
+            }
+        }
 
         /** Version 2 adds the table where the user files components into categories. */
         private val MIGRATION_1_2 = object : Migration(1, 2) {

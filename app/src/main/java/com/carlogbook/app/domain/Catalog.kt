@@ -3,13 +3,24 @@ package com.carlogbook.app.domain
 import com.carlogbook.app.data.ComponentPlacement
 import com.carlogbook.app.data.Service
 
-/** A part or job you can track. Aliases are older or alternative names that mean the same thing. */
-data class Component(val name: String, val aliases: List<String> = emptyList()) {
+/**
+ * A part or job you can track. Aliases are older or alternative names that mean the same thing.
+ * [wears] is true for things that are used up over km or time (oil, pads, belts) and false for
+ * things that simply work until they fail (sensors, pumps, alternator), which have no "life" to show.
+ */
+data class Component(
+    val name: String,
+    val aliases: List<String> = emptyList(),
+    val wears: Boolean = true
+) {
     fun matches(jobName: String): Boolean {
         val n = jobName.trim()
         return name.equals(n, ignoreCase = true) || aliases.any { it.equals(n, ignoreCase = true) }
     }
 }
+
+/** Shorthand for a component that is replaced only when it fails. */
+private fun fixed(name: String, aliases: List<String> = emptyList()) = Component(name, aliases, wears = false)
 
 data class Category(val id: String, val name: String, val components: List<Component>)
 
@@ -22,10 +33,14 @@ data class ComponentStatus(
     val lastService: Service?
 ) {
     val isKnown: Boolean get() = upcoming != null
+    /** A wear part we have no interval for: the only case that is genuinely "unknown". */
+    val isUnknown: Boolean get() = component.wears && upcoming == null
 }
 
 data class CategoryStatus(val category: Category, val components: List<ComponentStatus>) {
     val known: List<ComponentStatus> get() = components.filter { it.isKnown }
+    val unknown: List<ComponentStatus> get() = components.filter { it.isUnknown }
+    val wearParts: List<ComponentStatus> get() = components.filter { it.component.wears }
     val worst: ReminderStatus? get() = known.mapNotNull { it.upcoming?.status }.minByOrNull { it.ordinal }
     /** The component closest to needing attention, for the summary line. */
     val mostUrgent: ComponentStatus? get() = known.minByOrNull { it.upcoming!!.lifeLeft }
@@ -48,11 +63,11 @@ object Catalog {
             Component("Timing chain"),
             Component("Auxiliary belt", listOf("Serpentine belt", "Drive belt")),
             Component("Coolant", listOf("Antifreeze")),
-            Component("Thermostat"),
-            Component("Water pump"),
-            Component("Turbocharger", listOf("Turbo")),
-            Component("Engine mounts"),
-            Component("Injectors")
+            fixed("Thermostat"),
+            fixed("Water pump"),
+            fixed("Turbocharger", listOf("Turbo")),
+            fixed("Engine mounts"),
+            fixed("Injectors")
         )),
         Category("brakes", "Brakes", listOf(
             Component("Brake pads (front)"),
@@ -60,29 +75,29 @@ object Catalog {
             Component("Brake discs (front)", listOf("Brake discs")),
             Component("Brake discs (rear)"),
             Component("Brake fluid"),
-            Component("Brake lines", listOf("Brake hoses")),
-            Component("Handbrake", listOf("Parking brake"))
+            fixed("Brake lines", listOf("Brake hoses")),
+            fixed("Handbrake", listOf("Parking brake"))
         )),
         Category("suspension", "Suspension & steering", listOf(
             Component("Shock absorbers (front)"),
             Component("Shock absorbers (rear)"),
-            Component("Springs"),
-            Component("Control arms", listOf("Wishbones")),
-            Component("Ball joints"),
-            Component("Tie rod ends", listOf("Track rod ends")),
-            Component("Anti-roll bar links", listOf("Drop links")),
-            Component("Bushings"),
-            Component("Wheel bearings"),
+            fixed("Springs"),
+            fixed("Control arms", listOf("Wishbones")),
+            fixed("Ball joints"),
+            fixed("Tie rod ends", listOf("Track rod ends")),
+            fixed("Anti-roll bar links", listOf("Drop links")),
+            fixed("Bushings"),
+            fixed("Wheel bearings"),
             Component("Wheel alignment", listOf("Alignment")),
             Component("Power steering fluid")
         )),
         Category("gearbox", "Gearbox & drivetrain", listOf(
             Component("Gearbox oil", listOf("Transmission fluid", "Transmission oil")),
             Component("Clutch"),
-            Component("Dual-mass flywheel", listOf("Flywheel")),
+            fixed("Dual-mass flywheel", listOf("Flywheel")),
             Component("Differential oil"),
-            Component("Driveshafts"),
-            Component("CV boots"),
+            fixed("Driveshafts"),
+            fixed("CV boots"),
             Component("Transfer case oil")
         )),
         Category("tyres", "Tyres & wheels", listOf(
@@ -90,28 +105,28 @@ object Catalog {
             Component("Tyres (rear)"),
             Component("Tyre rotation", listOf("Tire rotation")),
             Component("Wheel balancing"),
-            Component("Spare tyre")
+            fixed("Spare tyre")
         )),
         Category("electrical", "Electrical", listOf(
             Component("Battery"),
-            Component("Alternator"),
-            Component("Starter motor"),
-            Component("Headlight bulbs"),
+            fixed("Alternator"),
+            fixed("Starter motor"),
+            fixed("Headlight bulbs"),
             Component("Wiper blades"),
             Component("Key battery")
         )),
         Category("climate", "Climate & cabin", listOf(
             Component("Cabin filter", listOf("Pollen filter")),
             Component("A/C refrigerant", listOf("A/C recharge", "Air conditioning")),
-            Component("A/C compressor"),
-            Component("Heater")
+            fixed("A/C compressor"),
+            fixed("Heater")
         )),
         Category("exhaust", "Exhaust & emissions", listOf(
-            Component("Exhaust"),
-            Component("Catalytic converter"),
-            Component("Diesel particulate filter", listOf("DPF")),
-            Component("EGR valve"),
-            Component("Lambda sensor", listOf("Oxygen sensor")),
+            fixed("Exhaust"),
+            fixed("Catalytic converter"),
+            fixed("Diesel particulate filter", listOf("DPF")),
+            fixed("EGR valve"),
+            fixed("Lambda sensor", listOf("Oxygen sensor")),
             Component("AdBlue")
         )),
         Category("body", "Body & paperwork", listOf(
@@ -119,7 +134,7 @@ object Catalog {
             Component("Technical inspection", listOf("MOT", "Revisione")),
             Component("Insurance"),
             Component("Road tax"),
-            Component("Windscreen"),
+            fixed("Windscreen"),
             Component("Washer fluid"),
             Component("Rust protection")
         ))
@@ -142,24 +157,26 @@ object Catalog {
     fun categoriesWith(placements: List<ComponentPlacement>): List<Category> {
         val byKey = placements.associateBy { it.key }
 
-        // Where does each built-in component end up?
+        // Where does each built-in component end up, and does the user override its wear flag?
         val moved = mutableMapOf<String, MutableList<Component>>() // categoryId -> components
         val kept = categories.associate { cat ->
-            cat.id to cat.components.filter { comp ->
-                val target = placementFor(comp, byKey)
+            cat.id to cat.components.mapNotNull { comp ->
+                val placement = placementFor(comp, byKey)
+                val applied = comp.copy(wears = placement?.wears ?: comp.wears)
+                val target = placement?.categoryId?.takeIf { it.isNotEmpty() }
                 if (target == null || target == cat.id) {
-                    true
+                    applied
                 } else {
-                    moved.getOrPut(target) { mutableListOf() }.add(comp)
-                    false
+                    moved.getOrPut(target) { mutableListOf() }.add(applied)
+                    null
                 }
             }
         }
 
         // Components the catalogue does not know, added by the user.
         val custom = placements
-            .filter { builtInComponentFor(it.name) == null }
-            .groupBy({ it.categoryId }, { Component(it.name) })
+            .filter { it.categoryId.isNotEmpty() && builtInComponentFor(it.name) == null }
+            .groupBy({ it.categoryId }, { Component(it.name, wears = it.wears ?: true) })
 
         return categories.map { cat ->
             Category(
@@ -171,8 +188,14 @@ object Catalog {
     }
 
     /** The placement, if any, for a built-in component: by its name or any alias. */
-    private fun placementFor(comp: Component, byKey: Map<String, ComponentPlacement>): String? =
-        (listOf(comp.name) + comp.aliases).firstNotNullOfOrNull { byKey[it.lowercase()]?.categoryId }
+    private fun placementFor(comp: Component, byKey: Map<String, ComponentPlacement>): ComponentPlacement? =
+        (listOf(comp.name) + comp.aliases).firstNotNullOfOrNull { byKey[it.lowercase()] }
+
+    /** The category a built-in component ships in, or null for user-added ones. */
+    fun homeCategoryOf(name: String): Category? {
+        val comp = builtInComponentFor(name) ?: return null
+        return categories.firstOrNull { cat -> cat.components.any { it.name == comp.name } }
+    }
 
     /**
      * Status of every category for one car. Jobs that match no component (built-in or placed)
@@ -200,6 +223,7 @@ object Catalog {
 
         val known = cats.map { cat -> CategoryStatus(cat, cat.components.map(::statusFor)) }
 
+        val byKey = placements.associateBy { it.key }
         val otherNames = latestByJob.values
             .map { it.jobName.trim() }
             .filter { name -> allComponents.none { it.matches(name) } }
@@ -207,7 +231,10 @@ object Catalog {
             .sortedBy { it.lowercase() }
         if (otherNames.isEmpty()) return known
 
-        val other = Category(OTHER_ID, "Other", otherNames.map { Component(it) })
+        val other = Category(
+            OTHER_ID, "Other",
+            otherNames.map { Component(it, wears = byKey[it.lowercase()]?.wears ?: true) }
+        )
         return known + CategoryStatus(other, other.components.map(::statusFor))
     }
 }

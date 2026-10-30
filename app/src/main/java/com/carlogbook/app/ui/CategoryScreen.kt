@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -68,14 +69,12 @@ fun CategoryScreen(
 
     moving?.let { status ->
         val name = status.component.name
-        val isPlaced = placements.any { it.key == name.lowercase() }
-        val builtInHome = Catalog.builtInComponentFor(name)?.let { comp ->
-            Catalog.categories.firstOrNull { cat -> cat.components.any { it.name == comp.name } }
-        }
+        val isMoved = placements.any { it.key == name.lowercase() && it.categoryId.isNotEmpty() }
+        val builtInHome = Catalog.homeCategoryOf(name)
         MoveDialog(
             componentName = name,
             currentCategoryId = categoryId,
-            canReset = isPlaced,
+            canReset = isMoved,
             resetLabel = builtInHome?.let { "Back to ${it.name}" } ?: "Back to Other",
             onMove = { target ->
                 vm.placeComponent(name, target)
@@ -93,8 +92,8 @@ fun CategoryScreen(
         AddComponentDialog(
             categoryName = category?.category?.name ?: "",
             existingNames = statuses.flatMap { s -> s.components.map { it.component.name } },
-            onAdd = { name ->
-                vm.placeComponent(name, categoryId)
+            onAdd = { name, wears ->
+                vm.placeComponent(name, categoryId, wears)
                 adding = false
             },
             onDismiss = { adding = false }
@@ -141,15 +140,21 @@ fun CategoryScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            // Known components first, most urgent on top; unknown ones keep catalogue order.
+            // Tracked parts first (most urgent on top), then unknown wear parts, then replace-when-faulty ones.
             val ordered = category.components.sortedWith(
-                compareBy<ComponentStatus> { !it.isKnown }.thenBy { it.upcoming?.lifeLeft ?: 1f }
+                compareBy<ComponentStatus>({ !it.isKnown }, { !it.component.wears }, { it.upcoming?.lifeLeft ?: 1f })
             )
             items(ordered, key = { it.component.name.lowercase() }) { status ->
                 ComponentCard(
                     status = status,
                     onClick = { onLogComponent(status.component.name) },
-                    trailing = { ComponentMenu(onMove = { moving = status }) }
+                    trailing = {
+                        ComponentMenu(
+                            wears = status.component.wears,
+                            onMove = { moving = status },
+                            onToggleWears = { vm.setComponentWears(status.component.name, !status.component.wears) }
+                        )
+                    }
                 )
             }
         }
@@ -157,7 +162,7 @@ fun CategoryScreen(
 }
 
 @Composable
-private fun ComponentMenu(onMove: () -> Unit) {
+private fun ComponentMenu(wears: Boolean, onMove: () -> Unit, onToggleWears: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     IconButton(onClick = { open = true }) {
         Icon(Icons.Default.MoreVert, contentDescription = "More")
@@ -168,6 +173,13 @@ private fun ComponentMenu(onMove: () -> Unit) {
             onClick = {
                 open = false
                 onMove()
+            }
+        )
+        DropdownMenuItem(
+            text = { Text(if (wears) "Mark as “replace when faulty”" else "Mark as wear part") },
+            onClick = {
+                open = false
+                onToggleWears()
             }
         )
     }
@@ -225,10 +237,11 @@ private fun MoveDialog(
 private fun AddComponentDialog(
     categoryName: String,
     existingNames: List<String>,
-    onAdd: (String) -> Unit,
+    onAdd: (name: String, wears: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
+    var wears by remember { mutableStateOf(true) }
     val clean = name.trim()
     val duplicate = existingNames.any { it.equals(clean, ignoreCase = true) }
 
@@ -251,15 +264,25 @@ private fun AddComponentDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text(
-                    "It will show as “Life unknown” until you log a service for it with a reminder interval.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Wears out", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            if (wears) "Used up over km or time, like oil or pads. Shows a life bar."
+                            else "Works until it fails, like a sensor. No life bar.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = wears, onCheckedChange = { wears = it })
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onAdd(clean) }, enabled = clean.isNotEmpty() && !duplicate) { Text("Add") }
+            TextButton(onClick = { onAdd(clean, wears) }, enabled = clean.isNotEmpty() && !duplicate) { Text("Add") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )

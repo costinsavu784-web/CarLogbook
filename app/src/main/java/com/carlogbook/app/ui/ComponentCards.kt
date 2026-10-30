@@ -42,10 +42,34 @@ fun ComponentCard(
     trailing: (@Composable () -> Unit)? = null
 ) {
     val upcoming = status.upcoming
-    if (upcoming != null) {
-        KnownComponentCard(status.component.name, upcoming, onClick, trailing)
-    } else {
-        UnknownComponentCard(status, onClick, trailing)
+    when {
+        upcoming != null -> KnownComponentCard(status.component.name, upcoming, onClick, trailing)
+        status.component.wears -> UnknownComponentCard(status, onClick, trailing)
+        else -> FixedComponentCard(status, onClick, trailing)
+    }
+}
+
+/** A part that works until it fails: no life to measure, just when it was last replaced. */
+@Composable
+private fun FixedComponentCard(
+    status: ComponentStatus,
+    onClick: (() -> Unit)?,
+    trailing: (@Composable () -> Unit)?
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    CardShell(MaterialTheme.colorScheme.surface, onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(status.component.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text("Replace when faulty", style = MaterialTheme.typography.titleSmall, color = muted)
+            trailing?.invoke()
+        }
+        val last = status.lastService
+        Text(
+            if (last != null) "Last replaced ${Fmt.date(last.dateEpochDay)} at ${Fmt.km(last.odometerKm)}."
+            else "Never replaced.",
+            style = MaterialTheme.typography.bodySmall,
+            color = muted
+        )
     }
 }
 

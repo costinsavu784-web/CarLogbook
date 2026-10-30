@@ -214,12 +214,16 @@ private fun CategoryCard(cat: CategoryStatus, onClick: () -> Unit) {
     val knownCount = cat.known.size
     val total = cat.components.size
 
+    val unknownCount = cat.unknown.size
+    val wearCount = cat.wearParts.size
+
     val summary = when {
-        knownCount == 0 -> "Life unknown for all $total components"
+        wearCount == 0 -> "No wear parts, $total replace-when-faulty"
+        knownCount == 0 -> "Life unknown for all $wearCount wear parts"
         else -> {
             val urgent = cat.mostUrgent!!
             val head = "${urgent.component.name}: ${lifeHeadline(urgent.upcoming!!).lowercase()}"
-            if (knownCount < total) "$head · ${total - knownCount} unknown" else head
+            if (unknownCount > 0) "$head · $unknownCount unknown" else head
         }
     }
 
@@ -245,11 +249,13 @@ private fun CategoryCard(cat: CategoryStatus, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Text(
-                "$knownCount/$total",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (wearCount > 0) {
+                Text(
+                    "$knownCount/$wearCount",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
