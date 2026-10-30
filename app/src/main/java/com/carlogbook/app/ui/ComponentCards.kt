@@ -31,19 +31,31 @@ fun statusColor(status: ReminderStatus?): Color = when (status) {
     null -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-/** One component: its life bar when we know it, otherwise "Life unknown". */
+/**
+ * One component: its life bar when we know it, otherwise "Life unknown".
+ * [trailing] is an optional control shown at the end of the title row (for example a menu).
+ */
 @Composable
-fun ComponentCard(status: ComponentStatus, onClick: (() -> Unit)? = null) {
+fun ComponentCard(
+    status: ComponentStatus,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null
+) {
     val upcoming = status.upcoming
     if (upcoming != null) {
-        KnownComponentCard(status.component.name, upcoming, onClick)
+        KnownComponentCard(status.component.name, upcoming, onClick, trailing)
     } else {
-        UnknownComponentCard(status, onClick)
+        UnknownComponentCard(status, onClick, trailing)
     }
 }
 
 @Composable
-private fun KnownComponentCard(name: String, item: Upcoming, onClick: (() -> Unit)?) {
+private fun KnownComponentCard(
+    name: String,
+    item: Upcoming,
+    onClick: (() -> Unit)?,
+    trailing: (@Composable () -> Unit)?
+) {
     val barColor = statusColor(item.status)
     val container = when (item.status) {
         ReminderStatus.OVERDUE -> MaterialTheme.colorScheme.errorContainer
@@ -54,6 +66,7 @@ private fun KnownComponentCard(name: String, item: Upcoming, onClick: (() -> Uni
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text(lifeHeadline(item), style = MaterialTheme.typography.titleMedium, color = barColor)
+            trailing?.invoke()
         }
         LinearProgressIndicator(
             progress = { item.lifeLeft },
@@ -73,12 +86,17 @@ private fun KnownComponentCard(name: String, item: Upcoming, onClick: (() -> Uni
 }
 
 @Composable
-private fun UnknownComponentCard(status: ComponentStatus, onClick: (() -> Unit)?) {
+private fun UnknownComponentCard(
+    status: ComponentStatus,
+    onClick: (() -> Unit)?,
+    trailing: (@Composable () -> Unit)?
+) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     CardShell(MaterialTheme.colorScheme.surface, onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(status.component.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text("Life unknown", style = MaterialTheme.typography.titleSmall, color = muted)
+            trailing?.invoke()
         }
         val last = status.lastService
         Text(

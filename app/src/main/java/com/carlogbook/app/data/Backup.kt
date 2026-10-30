@@ -7,28 +7,38 @@ import java.time.LocalDate
 /** One car together with its services, as read from or written to a backup file. */
 data class CarBackup(val car: Car, val services: List<Service>)
 
+/** The whole garage: cars with their services, plus where the user filed components. */
+data class GarageBackup(
+    val cars: List<CarBackup>,
+    val placements: List<ComponentPlacement> = emptyList()
+) {
+    val serviceCount: Int get() = cars.sumOf { it.services.size }
+}
+
 /**
  * Converts the whole garage to and from a JSON text file.
  *
  * Services are nested under their car, so database IDs are not stored and importing into
  * another phone (or after a reinstall) never collides with existing rows.
+ *
+ * Format history: 1 = cars and services. 2 = adds "placements".
  */
 object BackupCodec {
 
-    const val FORMAT_VERSION = 1
+    const val FORMAT_VERSION = 2
     private const val APP_TAG = "CarLogbook"
 
     fun suggestedFileName(today: LocalDate = LocalDate.now()): String =
         "CarLogbook-backup-$today.json"
 
-    fun encode(garage: List<CarBackup>, exportedAt: LocalDate = LocalDate.now()): String {
+    fun encode(backup: GarageBackup, exportedAt: LocalDate = LocalDate.now()): String {
         val root = JSONObject()
             .put("app", APP_TAG)
             .put("format", FORMAT_VERSION)
             .put("exportedAt", exportedAt.toString())
 
         val cars = JSONArray()
-        for (entry in garage) {
+        for (entry in backup.cars) {
             val c = entry.car
             val services = JSONArray()
             for (s in entry.services) {
@@ -56,11 +66,18 @@ object BackupCodec {
             )
         }
         root.put("cars", cars)
+
+        val placements = JSONArray()
+        for (p in backup.placements) {
+            placements.put(JSONObject().put("name", p.name).put("category", p.categoryId))
+        }
+        root.put("placements", placements)
+
         return root.toString(2)
     }
 
     /** Throws IllegalArgumentException with a readable message if the file is not a valid backup. */
-    fun decode(json: String): List<CarBackup> {
+    fun decode(json: String): GarageBackup {
         val root = try {
             JSONObject(json)
         } catch (e: Exception) {
@@ -73,7 +90,7 @@ object BackupCodec {
         }
 
         val cars = root.optJSONArray("cars") ?: JSONArray()
-        return List(cars.length()) { i ->
+        val carList = List(cars.length()) { i ->
             val c = cars.getJSONObject(i)
             val car = Car(
                 name = c.getString("name"),
@@ -100,6 +117,15 @@ object BackupCodec {
             }
             CarBackup(car, list)
         }
+
+        val placements = root.optJSONArray("placements") ?: JSONArray()
+        val placementList = List(placements.length()) { i ->
+            val p = placements.getJSONObject(i)
+            val name = p.getString("name").trim()
+            ComponentPlacement(key = name.lowercase(), name = name, categoryId = p.getString("category"))
+        }.filter { it.name.isNotEmpty() }
+
+        return GarageBackup(carList, placementList)
     }
 
     private fun JSONObject.optIntOrNull(key: String): Int? =

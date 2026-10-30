@@ -53,5 +53,5 @@ fun ConfirmDialog(
     )
 }
 
-/** Jobs offered as quick picks when adding a service: every component in the catalogue. */
+/** Jobs offered as quick picks when adding a service: every built-in component in the catalogue. */
 val DefaultJobNames: List<String> = com.carlogbook.app.domain.Catalog.allComponentNames

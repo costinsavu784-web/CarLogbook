@@ -47,3 +47,15 @@ data class Service(
     val intervalKm: Int? = null,
     val intervalMonths: Int? = null
 )
+
+/**
+ * Where the user wants a component to appear in the overview. Overrides the built-in catalogue
+ * and also lets the user add components the catalogue does not know. Shared by all cars.
+ * `key` is the name in lower case; `name` keeps the user's spelling.
+ */
+@Entity(tableName = "component_placements")
+data class ComponentPlacement(
+    @PrimaryKey val key: String,
+    val name: String,
+    val categoryId: String
+)

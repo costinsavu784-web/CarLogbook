@@ -2,6 +2,7 @@ package com.carlogbook.app.data
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -59,4 +60,25 @@ interface ServiceDao {
 
     @Query("DELETE FROM services WHERE id = :id")
     suspend fun deleteById(id: Long)
+}
+
+@Dao
+interface PlacementDao {
+    @Query("SELECT * FROM component_placements")
+    fun observeAll(): Flow<List<ComponentPlacement>>
+
+    @Query("SELECT * FROM component_placements")
+    suspend fun getAll(): List<ComponentPlacement>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(placement: ComponentPlacement)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(placements: List<ComponentPlacement>)
+
+    @Query("DELETE FROM component_placements WHERE `key` = :key")
+    suspend fun delete(key: String)
+
+    @Query("DELETE FROM component_placements")
+    suspend fun deleteAll()
 }

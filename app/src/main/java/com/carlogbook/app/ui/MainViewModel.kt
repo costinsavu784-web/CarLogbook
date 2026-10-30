@@ -6,8 +6,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.carlogbook.app.data.BackupCodec
 import com.carlogbook.app.data.Car
-import com.carlogbook.app.data.CarBackup
 import com.carlogbook.app.data.CarDatabase
+import com.carlogbook.app.data.ComponentPlacement
+import com.carlogbook.app.data.GarageBackup
 import com.carlogbook.app.data.Service
 import com.carlogbook.app.domain.ReminderCalculator
 import com.carlogbook.app.domain.Upcoming
@@ -29,6 +30,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val db = CarDatabase.get(app)
     private val carDao = db.carDao()
     private val serviceDao = db.serviceDao()
+    private val placementDao = db.placementDao()
 
     val cars: StateFlow<List<Car>> = carDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -97,17 +99,17 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Writes the whole garage as JSON to the given file (chosen by the user through the system picker). */
     suspend fun exportBackup(uri: Uri): BackupSummary = withContext(Dispatchers.IO) {
-        val garage = db.exportGarage()
-        val json = BackupCodec.encode(garage)
+        val backup = db.exportGarage()
+        val json = BackupCodec.encode(backup)
         val resolver = getApplication<Application>().contentResolver
         // "wt" truncates: without it an older, longer file would keep its tail.
         val out = resolver.openOutputStream(uri, "wt") ?: error("Could not open the file for writing.")
         out.bufferedWriter().use { it.write(json) }
-        BackupSummary(garage.size, garage.sumOf { it.services.size })
+        BackupSummary(backup.cars.size, backup.serviceCount)
     }
 
     /** Reads a backup file without changing anything, so the user can confirm before importing. */
-    suspend fun readBackup(uri: Uri): List<CarBackup> = withContext(Dispatchers.IO) {
+    suspend fun readBackup(uri: Uri): GarageBackup = withContext(Dispatchers.IO) {
         val resolver = getApplication<Application>().contentResolver
         val input = resolver.openInputStream(uri) ?: error("Could not open the file.")
         val json = input.bufferedReader().use { it.readText() }
@@ -115,9 +117,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Replaces the current garage with the backup contents. */
-    suspend fun importBackup(garage: List<CarBackup>): BackupSummary = withContext(Dispatchers.IO) {
-        db.importGarage(garage)
-        BackupSummary(garage.size, garage.sumOf { it.services.size })
+    suspend fun importBackup(backup: GarageBackup): BackupSummary = withContext(Dispatchers.IO) {
+        db.importGarage(backup)
+        BackupSummary(backup.cars.size, backup.serviceCount)
+    }
+
+    // --- Component placement -----------------------------------------------------------------
+
+    /** Where the user has filed components, applied on top of the built-in catalogue. */
+    val placements: StateFlow<List<ComponentPlacement>> = placementDao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Files a component (existing or brand new) under the given category. */
+    fun placeComponent(name: String, categoryId: String) {
+        val clean = name.trim()
+        if (clean.isEmpty()) return
+        viewModelScope.launch {
+            placementDao.upsert(ComponentPlacement(key = clean.lowercase(), name = clean, categoryId = categoryId))
+        }
+    }
+
+    /** Removes the user's placement so the component goes back to its built-in category (or Other). */
+    fun resetPlacement(name: String) {
+        viewModelScope.launch { placementDao.delete(name.trim().lowercase()) }
     }
 
     fun updateOdometer(carId: Long, km: Int) {

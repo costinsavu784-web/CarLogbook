@@ -160,7 +160,8 @@ fun ServiceEditScreen(
     }
 
     val usedNames by vm.jobNames.collectAsStateWithLifecycle()
-    val suggestions = (usedNames + DefaultJobNames)
+    val placed by vm.placements.collectAsStateWithLifecycle()
+    val suggestions = (usedNames + placed.map { it.name } + DefaultJobNames)
         .distinctBy { it.lowercase() }
         .filter { name -> jobs.none { it.name.equals(name, ignoreCase = true) } }
         .filter { jobInput.isBlank() || it.contains(jobInput, ignoreCase = true) }

@@ -4,27 +4,34 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.room.withTransaction
+import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Car::class, Service::class], version = 1, exportSchema = false)
+@Database(entities = [Car::class, Service::class, ComponentPlacement::class], version = 2, exportSchema = false)
 abstract class CarDatabase : RoomDatabase() {
     abstract fun carDao(): CarDao
     abstract fun serviceDao(): ServiceDao
+    abstract fun placementDao(): PlacementDao
 
     /** Everything in the database, ready to be written to a backup file. */
-    suspend fun exportGarage(): List<CarBackup> =
-        carDao().getAll().map { car -> CarBackup(car, serviceDao().getForCar(car.id)) }
+    suspend fun exportGarage(): GarageBackup = GarageBackup(
+        cars = carDao().getAll().map { car -> CarBackup(car, serviceDao().getForCar(car.id)) },
+        placements = placementDao().getAll()
+    )
 
     /**
      * Replaces the whole garage with the contents of a backup. Runs in one transaction:
      * if anything fails, the existing data is left untouched.
      */
-    suspend fun importGarage(garage: List<CarBackup>) = withTransaction {
+    suspend fun importGarage(backup: GarageBackup) = withTransaction {
         carDao().deleteAll()
-        for (entry in garage) {
+        for (entry in backup.cars) {
             val carId = carDao().insert(entry.car.copy(id = 0))
             serviceDao().insertAll(entry.services.map { it.copy(id = 0, carId = carId) })
         }
+        placementDao().deleteAll()
+        placementDao().upsertAll(backup.placements)
     }
 
     companion object {
@@ -37,8 +44,19 @@ abstract class CarDatabase : RoomDatabase() {
                     context.applicationContext,
                     CarDatabase::class.java,
                     "carlogbook.db"
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
+
+        /** Version 2 adds the table where the user files components into categories. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `component_placements` (" +
+                        "`key` TEXT NOT NULL, `name` TEXT NOT NULL, `categoryId` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`key`))"
+                )
+            }
+        }
     }
 }
 

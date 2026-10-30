@@ -40,7 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.carlogbook.app.data.BackupCodec
-import com.carlogbook.app.data.CarBackup
+import com.carlogbook.app.data.GarageBackup
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +51,7 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
 
     var busy by remember { mutableStateOf(false) }
-    var pendingRestore by remember { mutableStateOf<List<CarBackup>?>(null) }
+    var pendingRestore by remember { mutableStateOf<GarageBackup?>(null) }
 
     // The system "Save as" dialog. The user picks the folder (Downloads, SD card, Drive…).
     val exportLauncher = rememberLauncherForActivityResult(
@@ -89,10 +89,10 @@ fun BackupScreen(vm: MainViewModel, onBack: () -> Unit) {
     }
 
     pendingRestore?.let { garage ->
-        val services = garage.sumOf { it.services.size }
+        val services = garage.serviceCount
         ConfirmDialog(
             title = "Restore this backup?",
-            message = "The backup contains ${garage.size} cars and $services services.\n\n" +
+            message = "The backup contains ${garage.cars.size} cars and $services services.\n\n" +
                 "Your current garage (${cars.size} cars) will be replaced. This cannot be undone.",
             confirmLabel = "Replace",
             onConfirm = {

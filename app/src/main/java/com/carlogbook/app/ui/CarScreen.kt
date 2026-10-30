@@ -90,8 +90,9 @@ fun CarScreen(
     val car by carFlow.collectAsStateWithLifecycle(initialValue = null)
     val services by servicesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val upcoming by upcomingFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+    val placements by vm.placements.collectAsStateWithLifecycle()
     val currentCar = car
-    val categories = remember(upcoming, services) { Catalog.status(upcoming, services) }
+    val categories = remember(upcoming, services, placements) { Catalog.status(upcoming, services, placements) }
 
     var tab by rememberSaveable { mutableIntStateOf(TAB_OVERVIEW) }
 

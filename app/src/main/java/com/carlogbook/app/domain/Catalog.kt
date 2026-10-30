@@ -1,5 +1,6 @@
 package com.carlogbook.app.domain
 
+import com.carlogbook.app.data.ComponentPlacement
 import com.carlogbook.app.data.Service
 
 /** A part or job you can track. Aliases are older or alternative names that mean the same thing. */
@@ -129,14 +130,62 @@ object Catalog {
 
     fun category(id: String): Category? = categories.firstOrNull { it.id == id }
 
-    fun componentFor(jobName: String): Component? =
+    /** The built-in component a job name belongs to, ignoring user placements. */
+    fun builtInComponentFor(jobName: String): Component? =
         categories.asSequence().flatMap { it.components.asSequence() }.firstOrNull { it.matches(jobName) }
 
     /**
-     * Status of every category for one car. Jobs that match no catalogue component
+     * Builds the categories as the user sees them: the built-in catalogue with the user's
+     * placements applied. A placement moves a built-in component (and its aliases) to another
+     * category, or adds a component the catalogue does not know.
+     */
+    fun categoriesWith(placements: List<ComponentPlacement>): List<Category> {
+        val byKey = placements.associateBy { it.key }
+
+        // Where does each built-in component end up?
+        val moved = mutableMapOf<String, MutableList<Component>>() // categoryId -> components
+        val kept = categories.associate { cat ->
+            cat.id to cat.components.filter { comp ->
+                val target = placementFor(comp, byKey)
+                if (target == null || target == cat.id) {
+                    true
+                } else {
+                    moved.getOrPut(target) { mutableListOf() }.add(comp)
+                    false
+                }
+            }
+        }
+
+        // Components the catalogue does not know, added by the user.
+        val custom = placements
+            .filter { builtInComponentFor(it.name) == null }
+            .groupBy({ it.categoryId }, { Component(it.name) })
+
+        return categories.map { cat ->
+            Category(
+                cat.id,
+                cat.name,
+                kept.getValue(cat.id) + (moved[cat.id] ?: emptyList()) + (custom[cat.id] ?: emptyList())
+            )
+        }
+    }
+
+    /** The placement, if any, for a built-in component: by its name or any alias. */
+    private fun placementFor(comp: Component, byKey: Map<String, ComponentPlacement>): String? =
+        (listOf(comp.name) + comp.aliases).firstNotNullOfOrNull { byKey[it.lowercase()]?.categoryId }
+
+    /**
+     * Status of every category for one car. Jobs that match no component (built-in or placed)
      * are collected in an "Other" category, which is only present when it is not empty.
      */
-    fun status(upcoming: List<Upcoming>, services: List<Service>): List<CategoryStatus> {
+    fun status(
+        upcoming: List<Upcoming>,
+        services: List<Service>,
+        placements: List<ComponentPlacement> = emptyList()
+    ): List<CategoryStatus> {
+        val cats = categoriesWith(placements)
+        val allComponents = cats.flatMap { it.components }
+
         val latestByJob = services
             .groupBy { it.jobName.trim().lowercase() }
             .mapValues { (_, list) -> list.maxWith(compareBy({ it.dateEpochDay }, { it.odometerKm }, { it.id })) }
@@ -149,11 +198,11 @@ object Catalog {
             return ComponentStatus(component, matchingUpcoming, lastService)
         }
 
-        val known = categories.map { cat -> CategoryStatus(cat, cat.components.map(::statusFor)) }
+        val known = cats.map { cat -> CategoryStatus(cat, cat.components.map(::statusFor)) }
 
         val otherNames = latestByJob.values
             .map { it.jobName.trim() }
-            .filter { componentFor(it) == null }
+            .filter { name -> allComponents.none { it.matches(name) } }
             .distinctBy { it.lowercase() }
             .sortedBy { it.lowercase() }
         if (otherNames.isEmpty()) return known
@@ -161,7 +210,4 @@ object Catalog {
         val other = Category(OTHER_ID, "Other", otherNames.map { Component(it) })
         return known + CategoryStatus(other, other.components.map(::statusFor))
     }
-
-    fun otherCategory(statuses: List<CategoryStatus>): Category? =
-        statuses.firstOrNull { it.category.id == OTHER_ID }?.category
 }
