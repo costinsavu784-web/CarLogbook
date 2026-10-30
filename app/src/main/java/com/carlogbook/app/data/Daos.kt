@@ -1,0 +1,55 @@
+package com.carlogbook.app.data
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface CarDao {
+    @Query("SELECT * FROM cars ORDER BY name COLLATE NOCASE")
+    fun observeAll(): Flow<List<Car>>
+
+    @Query("SELECT * FROM cars ORDER BY name COLLATE NOCASE")
+    suspend fun getAll(): List<Car>
+
+    @Query("SELECT * FROM cars WHERE id = :id")
+    fun observe(id: Long): Flow<Car?>
+
+    @Query("SELECT * FROM cars WHERE id = :id")
+    suspend fun get(id: Long): Car?
+
+    @Insert
+    suspend fun insert(car: Car): Long
+
+    @Update
+    suspend fun update(car: Car)
+
+    @Query("DELETE FROM cars WHERE id = :id")
+    suspend fun deleteById(id: Long)
+}
+
+@Dao
+interface ServiceDao {
+    @Query("SELECT * FROM services WHERE carId = :carId ORDER BY dateEpochDay DESC, odometerKm DESC, id DESC")
+    fun observeForCar(carId: Long): Flow<List<Service>>
+
+    @Query("SELECT * FROM services WHERE carId = :carId")
+    suspend fun getForCar(carId: Long): List<Service>
+
+    @Query("SELECT * FROM services WHERE id = :id")
+    suspend fun get(id: Long): Service?
+
+    @Query("SELECT DISTINCT jobName FROM services ORDER BY jobName COLLATE NOCASE")
+    fun observeJobNames(): Flow<List<String>>
+
+    @Insert
+    suspend fun insert(service: Service): Long
+
+    @Update
+    suspend fun update(service: Service)
+
+    @Query("DELETE FROM services WHERE id = :id")
+    suspend fun deleteById(id: Long)
+}
