@@ -9,9 +9,11 @@ import com.carlogbook.app.data.Car
 import com.carlogbook.app.data.CarDatabase
 import com.carlogbook.app.data.ComponentPlacement
 import com.carlogbook.app.data.GarageBackup
+import com.carlogbook.app.data.MountedPart
 import com.carlogbook.app.data.Service
 import com.carlogbook.app.data.ServiceDraft
 import com.carlogbook.app.data.ServicePart
+import com.carlogbook.app.domain.Catalog
 import com.carlogbook.app.domain.ReminderCalculator
 import com.carlogbook.app.domain.Upcoming
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val carDao = db.carDao()
     private val serviceDao = db.serviceDao()
     private val partDao = db.partDao()
+    private val mountedDao = db.mountedDao()
     private val placementDao = db.placementDao()
 
     val cars: StateFlow<List<Car>> = carDao.observeAll()
@@ -86,7 +89,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun saveServices(drafts: List<ServiceDraft>) {
         if (drafts.isEmpty()) return
         viewModelScope.launch {
-            for (draft in drafts) db.saveDraft(draft)
+            for (draft in drafts) {
+                val isNew = draft.service.id == 0L
+                db.saveDraft(draft)
+                // New work with parts supersedes whatever the user typed as "currently mounted".
+                if (isNew && draft.parts.any { it.name.isNotBlank() }) {
+                    mountedDao.deleteFor(draft.service.carId, Catalog.componentKey(draft.service.jobName))
+                }
+            }
             val services = drafts.map { it.service }
             val carId = services.first().carId
             val maxKm = services.maxOf { it.odometerKm }
@@ -138,6 +148,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         BackupSummary(backup.cars.size, backup.serviceCount)
     }
 
+    // --- Currently mounted -------------------------------------------------------------------
+
+    /** User-set mounted parts for a car, all components. Empty for a component means "use the last service". */
+    fun mounted(carId: Long): Flow<List<MountedPart>> = mountedDao.observeForCar(carId)
+
+    /** Stores what the user says is on the car now. An empty list goes back to "from the last service". */
+    fun setMounted(carId: Long, componentName: String, parts: List<MountedPart>) {
+        viewModelScope.launch { db.setMounted(carId, Catalog.componentKey(componentName), parts) }
+    }
+
     // --- Component placement -----------------------------------------------------------------
 
     /** Where the user has filed components, applied on top of the built-in catalogue. */
@@ -170,7 +190,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (clean.isEmpty()) return
         viewModelScope.launch {
             val existing = placementDao.get(clean.lowercase())
-            val builtIn = com.carlogbook.app.domain.Catalog.builtInComponentFor(clean)
+            val builtIn = Catalog.builtInComponentFor(clean)
             // Back to the catalogue default and no category move: nothing left to store.
             if (builtIn != null && builtIn.wears == wears && existing?.categoryId.isNullOrEmpty()) {
                 if (existing != null) placementDao.delete(existing.key)

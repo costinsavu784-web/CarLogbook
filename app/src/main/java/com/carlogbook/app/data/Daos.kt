@@ -81,6 +81,21 @@ interface PartDao {
 }
 
 @Dao
+interface MountedDao {
+    @Query("SELECT * FROM mounted_parts WHERE carId = :carId ORDER BY id")
+    fun observeForCar(carId: Long): Flow<List<MountedPart>>
+
+    @Query("SELECT * FROM mounted_parts WHERE carId = :carId ORDER BY id")
+    suspend fun getForCar(carId: Long): List<MountedPart>
+
+    @Insert
+    suspend fun insertAll(parts: List<MountedPart>)
+
+    @Query("DELETE FROM mounted_parts WHERE carId = :carId AND componentKey = :componentKey")
+    suspend fun deleteFor(carId: Long, componentKey: String)
+}
+
+@Dao
 interface PlacementDao {
     @Query("SELECT * FROM component_placements")
     fun observeAll(): Flow<List<ComponentPlacement>>

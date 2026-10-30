@@ -4,8 +4,12 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
 
-/** One car together with its services (and their parts), as read from or written to a backup file. */
-data class CarBackup(val car: Car, val services: List<ServiceDraft>)
+/** One car with its services (and their parts) and the user-set mounted parts, for the backup file. */
+data class CarBackup(
+    val car: Car,
+    val services: List<ServiceDraft>,
+    val mounted: List<MountedPart> = emptyList()
+)
 
 /** The whole garage: cars with their services, plus where the user filed components. */
 data class GarageBackup(
@@ -23,10 +27,11 @@ data class GarageBackup(
  * another phone (or after a reinstall) never collides with existing rows.
  *
  * Format history: 1 = cars and services. 2 = adds "placements". 3 = adds "parts" per service.
+ * 4 = adds "mounted" per car.
  */
 object BackupCodec {
 
-    const val FORMAT_VERSION = 3
+    const val FORMAT_VERSION = 4
     private const val APP_TAG = "CarLogbook"
 
     fun suggestedFileName(today: LocalDate = LocalDate.now()): String =
@@ -76,6 +81,18 @@ object BackupCodec {
                     .put("warnBeforeKm", c.warnBeforeKm)
                     .put("warnBeforeDays", c.warnBeforeDays)
                     .put("services", services)
+                    .put("mounted", JSONArray().also { arr ->
+                        for (m in entry.mounted) {
+                            arr.put(
+                                JSONObject()
+                                    .put("component", m.componentKey)
+                                    .put("name", m.name)
+                                    .put("quantity", m.quantity)
+                                    .put("oem", m.oemNumber)
+                                    .put("supplier", m.supplierNumber)
+                            )
+                        }
+                    })
             )
         }
         root.put("cars", cars)
@@ -145,7 +162,19 @@ object BackupCodec {
                 }.filter { it.name.isNotBlank() }
                 ServiceDraft(service, partList)
             }
-            CarBackup(car, list)
+            val mounted = c.optJSONArray("mounted") ?: JSONArray()
+            val mountedList = List(mounted.length()) { k ->
+                val m = mounted.getJSONObject(k)
+                MountedPart(
+                    carId = 0, // assigned on import
+                    componentKey = m.optString("component").lowercase(),
+                    name = m.optString("name"),
+                    quantity = m.optString("quantity"),
+                    oemNumber = m.optString("oem"),
+                    supplierNumber = m.optString("supplier")
+                )
+            }.filter { it.name.isNotBlank() && it.componentKey.isNotBlank() }
+            CarBackup(car, list, mountedList)
         }
 
         val placements = root.optJSONArray("placements") ?: JSONArray()

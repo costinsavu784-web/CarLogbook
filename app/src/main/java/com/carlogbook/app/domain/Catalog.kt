@@ -191,6 +191,13 @@ object Catalog {
     private fun placementFor(comp: Component, byKey: Map<String, ComponentPlacement>): ComponentPlacement? =
         (listOf(comp.name) + comp.aliases).firstNotNullOfOrNull { byKey[it.lowercase()] }
 
+    /**
+     * Stable key for a component across spellings: the built-in name if the job matches one
+     * (so "Oil change" and "Engine oil" share a key), otherwise the job name itself. Lower case.
+     */
+    fun componentKey(jobName: String): String =
+        (builtInComponentFor(jobName)?.name ?: jobName.trim()).lowercase()
+
     /** The category a built-in component ships in, or null for user-added ones. */
     fun homeCategoryOf(name: String): Category? {
         val comp = builtInComponentFor(name) ?: return null

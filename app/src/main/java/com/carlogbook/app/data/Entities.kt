@@ -77,6 +77,33 @@ data class ServicePart(
 data class ServiceDraft(val service: Service, val parts: List<ServicePart>)
 
 /**
+ * What is fitted to one component of one car right now, when the user set it by hand.
+ * If no rows exist for a car + component, the app shows the parts from the last service instead.
+ * `componentKey` is the component's canonical name in lower case (see Catalog.componentKey).
+ */
+@Entity(
+    tableName = "mounted_parts",
+    foreignKeys = [
+        ForeignKey(
+            entity = Car::class,
+            parentColumns = ["id"],
+            childColumns = ["carId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("carId")]
+)
+data class MountedPart(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val carId: Long,
+    val componentKey: String,
+    val name: String,
+    val quantity: String = "",
+    val oemNumber: String = "",
+    val supplierNumber: String = ""
+)
+
+/**
  * Where the user wants a component to appear in the overview. Overrides the built-in catalogue
  * and also lets the user add components the catalogue does not know. Shared by all cars.
  * `key` is the name in lower case; `name` keeps the user's spelling.
