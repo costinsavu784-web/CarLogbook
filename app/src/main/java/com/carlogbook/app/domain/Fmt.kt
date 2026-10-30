@@ -16,7 +16,8 @@ object Fmt {
 
     private fun plural(n: Long, unit: String): String = if (n == 1L) "1 $unit" else "$n ${unit}s"
 
-    private fun span(days: Long): String = when {
+    /** A number of days as "5 days", "3 weeks" or "4 months". */
+    fun span(days: Long): String = when {
         days < 14 -> plural(days, "day")
         days < 60 -> plural(days / 7, "week")
         else -> plural(days / 30, "month")

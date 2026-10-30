@@ -10,12 +10,34 @@ enum class ReminderStatus { OVERDUE, DUE_SOON, OK }
 data class Upcoming(
     val car: Car,
     val jobName: String,
+    val lastDoneKm: Int,
+    val lastDoneDay: Long,
+    val intervalKm: Int?,
+    val intervalMonths: Int?,
     val dueKm: Int?,
     val dueDay: Long?,
     val remainingKm: Int?,
     val remainingDays: Long?,
     val status: ReminderStatus
-)
+) {
+    /** Share of the km interval still unused, 0..1. Null when the job has no km interval. */
+    val kmLifeLeft: Float? get() = fraction(remainingKm?.toDouble(), intervalKm?.toDouble())
+
+    /** Share of the time interval still unused, 0..1. Null when the job has no time interval. */
+    val timeLifeLeft: Float? get() {
+        val due = dueDay ?: return null
+        val total = (due - lastDoneDay).toDouble()
+        return fraction(remainingDays?.toDouble(), total)
+    }
+
+    /** The smaller of the two, since the job is due at whichever comes first. */
+    val lifeLeft: Float get() = listOfNotNull(kmLifeLeft, timeLifeLeft).minOrNull() ?: 1f
+
+    private fun fraction(remaining: Double?, total: Double?): Float? {
+        if (remaining == null || total == null || total <= 0) return null
+        return (remaining / total).coerceIn(0.0, 1.0).toFloat()
+    }
+}
 
 object ReminderCalculator {
 
@@ -61,6 +83,10 @@ object ReminderCalculator {
                 Upcoming(
                     car = car,
                     jobName = latest.jobName.trim(),
+                    lastDoneKm = latest.odometerKm,
+                    lastDoneDay = latest.dateEpochDay,
+                    intervalKm = intervalKm,
+                    intervalMonths = intervalMonths,
                     dueKm = dueKm,
                     dueDay = dueDay,
                     remainingKm = remainingKm,

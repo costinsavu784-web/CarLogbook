@@ -49,13 +49,12 @@ fun AppNav(vm: MainViewModel = viewModel()) {
             arguments = listOf(navArgument("carId") { type = NavType.LongType })
         ) { entry ->
             val carId = entry.arguments?.getLong("carId") ?: 0L
-            HistoryScreen(
+            CarScreen(
                 vm = vm,
                 carId = carId,
                 onBack = { nav.popBackStack() },
                 onAddService = { nav.navigate("service_edit/$carId/0") },
                 onEditService = { serviceId -> nav.navigate("service_edit/$carId/$serviceId") },
-                onUpcoming = { nav.navigate("upcoming/$carId") },
                 onEditCar = { nav.navigate("car_edit/$carId") }
             )
         }
@@ -89,17 +88,6 @@ fun AppNav(vm: MainViewModel = viewModel()) {
 
         composable("backup") {
             BackupScreen(vm = vm, onBack = { nav.popBackStack() })
-        }
-
-        composable(
-            route = "upcoming/{carId}",
-            arguments = listOf(navArgument("carId") { type = NavType.LongType })
-        ) { entry ->
-            UpcomingScreen(
-                vm = vm,
-                carId = entry.arguments?.getLong("carId") ?: 0L,
-                onBack = { nav.popBackStack() }
-            )
         }
     }
 }
