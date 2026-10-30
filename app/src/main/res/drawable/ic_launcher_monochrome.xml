@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-colour version for Android 13 themed icons: the car with glass and arches as holes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:scaleX="0.8"
+        android:scaleY="0.8"
+        android:pivotX="54"
+        android:pivotY="54">
+
+        <!-- Body with arches and glass cut out using even-odd fill -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="
+                M14,60 L14,54 Q14,50.5 18,50 L44,47 L54,37 Q56,35 60,35 L82,35 Q86,35 87,38 L90,52 Q91,56 90,60 Z
+                M30,60 m-10.5,0 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0
+                M78,60 m-10.5,0 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0
+                M47,47 L56,38 L64,38 L64,47 Z
+                M66,38 L78,38 L78,47 L66,47 Z
+                M80,38 L84.5,38 L87,47 L80,47 Z" />
+
+        <!-- Wheels as rings -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="
+                M30,61 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0
+                M30,61 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0
+                M78,61 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0
+                M78,61 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+    </group>
+</vector>

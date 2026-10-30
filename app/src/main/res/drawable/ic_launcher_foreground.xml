@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Side profile of a BMW G31 (5 Series Touring): long bonnet, raked windscreen, long flat roof,
+    near-vertical tailgate, three side windows. Drawn in the 108x108 adaptive-icon space and scaled
+    to stay inside the 66dp safe zone so round launchers do not clip it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:scaleX="0.8"
+        android:scaleY="0.8"
+        android:pivotX="54"
+        android:pivotY="54">
+
+        <!-- Body -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="
+                M14,60
+                L14,54
+                Q14,50.5 18,50
+                L44,47
+                L54,37
+                Q56,35 60,35
+                L82,35
+                Q86,35 87,38
+                L90,52
+                Q91,56 90,60
+                Z" />
+
+        <!-- Wheel arches (cut out of the body) -->
+        <path android:fillColor="#FF1C2B4A" android:pathData="M30,60 m-10.5,0 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0" />
+        <path android:fillColor="#FF1C2B4A" android:pathData="M78,60 m-10.5,0 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0" />
+
+        <!-- Wheels -->
+        <path android:fillColor="#FFFFFFFF" android:pathData="M30,61 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M78,61 m-8,0 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0" />
+
+        <!-- Hubs -->
+        <path android:fillColor="#FF1C2B4A" android:pathData="M30,61 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+        <path android:fillColor="#FF1C2B4A" android:pathData="M78,61 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+
+        <!-- Glass: windscreen + front door, rear door, rear quarter (Touring) -->
+        <path android:fillColor="#FF1C2B4A" android:pathData="M47,47 L56,38 L64,38 L64,47 Z" />
+        <path android:fillColor="#FF1C2B4A" android:pathData="M66,38 L78,38 L78,47 L66,47 Z" />
+        <path android:fillColor="#FF1C2B4A" android:pathData="M80,38 L84.5,38 L87,47 L80,47 Z" />
+
+        <!-- Headlight -->
+        <path android:fillColor="#FF1C2B4A" android:pathData="M15.5,52.5 L22,51.3 L22,53.3 L15.5,54.2 Z" />
+    </group>
+</vector>
