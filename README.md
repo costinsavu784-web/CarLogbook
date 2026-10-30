@@ -36,7 +36,16 @@ If Android Studio cannot open the project, create a new "Empty Activity" project
 - A job with both km and months is due at whichever comes first.
 - If notifications never arrive on some phones (Xiaomi, Huawei, Samsung power saving), allow the app to run in the background and turn off battery optimisation for it.
 
-## Not in version 1 yet
+## Updates
+
+The app updates itself from this repository's GitHub Releases. Once a day it checks for a
+newer release and shows a card in the garage screen; you can also tap the update icon at the
+top right. The first time, Android asks you to allow Car Logbook to install apps.
+
+Install the latest APK from https://github.com/costinsavu784-web/CarLogbook/releases/latest.
+See `RELEASING.md` for how to publish a new version.
+
+## Not yet
 
 - Choosing a car model and engine to fill in the service intervals automatically.
 - Photos of receipts, cost tracking, charts.
