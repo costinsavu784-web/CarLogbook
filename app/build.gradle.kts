@@ -13,8 +13,8 @@ android {
         minSdk = 26
         targetSdk = 34
         // Bump both for every release. The git tag must be "v" + versionName (e.g. v1.1.0).
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
 
         // Where the app looks for updates (GitHub Releases of this repository).
         buildConfigField("String", "GITHUB_OWNER", "\"costinsavu784-web\"")

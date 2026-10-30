@@ -60,21 +60,36 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { carDao.deleteById(id) }
     }
 
-    /** Saves a service. If its kilometres are higher than the car's odometer, the odometer moves up too. */
-    fun saveService(service: Service) {
+    /**
+     * Saves one or more services logged together (same visit, same date and kilometres).
+     * If their kilometres are higher than the car's odometer, the odometer moves up too.
+     */
+    fun saveServices(services: List<Service>) {
+        if (services.isEmpty()) return
         viewModelScope.launch {
-            if (service.id == 0L) serviceDao.insert(service) else serviceDao.update(service)
-            val car = carDao.get(service.carId)
-            if (car != null && service.odometerKm > car.currentOdometerKm) {
+            for (service in services) {
+                if (service.id == 0L) serviceDao.insert(service) else serviceDao.update(service)
+            }
+            val carId = services.first().carId
+            val maxKm = services.maxOf { it.odometerKm }
+            val car = carDao.get(carId)
+            if (car != null && maxKm > car.currentOdometerKm) {
                 carDao.update(
                     car.copy(
-                        currentOdometerKm = service.odometerKm,
+                        currentOdometerKm = maxKm,
                         lastOdometerUpdateDay = LocalDate.now().toEpochDay()
                     )
                 )
             }
         }
     }
+
+    /** The reminder interval you last used for this job on this car, to prefill the form. */
+    suspend fun lastInterval(carId: Long, jobName: String): Service? =
+        serviceDao.getForCar(carId)
+            .filter { it.jobName.equals(jobName.trim(), ignoreCase = true) }
+            .filter { it.intervalKm != null || it.intervalMonths != null }
+            .maxWithOrNull(compareBy<Service>({ it.dateEpochDay }, { it.odometerKm }, { it.id }))
 
     fun deleteService(id: Long) {
         viewModelScope.launch { serviceDao.deleteById(id) }

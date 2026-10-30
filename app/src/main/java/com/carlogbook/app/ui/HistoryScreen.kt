@@ -1,5 +1,6 @@
 package com.carlogbook.app.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Speed
@@ -156,24 +159,57 @@ fun HistoryScreen(
                     }
                 }
             } else {
-                items(services, key = { it.id }) { service ->
-                    ServiceCard(service = service, onClick = { onEditService(service.id) })
+                // Jobs logged on the same day at the same kilometres were one visit: show them together.
+                val visits = services.groupBy { it.dateEpochDay to it.odometerKm }.values.toList()
+                items(visits, key = { it.first().id }) { visit ->
+                    VisitCard(services = visit, onEdit = onEditService)
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ServiceCard(service: Service, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(service.jobName, style = MaterialTheme.typography.titleMedium)
+private fun VisitCard(services: List<Service>, onEdit: (Long) -> Unit) {
+    val first = services.first()
+    // One note shared by all jobs is shown once under the header; different notes go with their job.
+    val sharedNotes = first.notes.takeIf { n -> n.isNotBlank() && services.all { it.notes == n } }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(vertical = 12.dp)) {
             Text(
-                "${Fmt.date(service.dateEpochDay)} · ${Fmt.km(service.odometerKm)}",
-                style = MaterialTheme.typography.bodyMedium
+                "${Fmt.date(first.dateEpochDay)} · ${Fmt.km(first.odometerKm)}",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
+            if (sharedNotes != null) {
+                Text(
+                    sharedNotes,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            services.forEach { service ->
+                JobRow(service = service, showNotes = sharedNotes == null, onClick = { onEdit(service.id) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun JobRow(service: Service, showNotes: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(service.jobName, style = MaterialTheme.typography.titleMedium)
 
             val repeat = listOfNotNull(
                 service.intervalKm?.let { "every ${Fmt.km(it)}" },
@@ -187,7 +223,7 @@ private fun ServiceCard(service: Service, onClick: () -> Unit) {
                 )
             }
 
-            if (service.notes.isNotBlank()) {
+            if (showNotes && service.notes.isNotBlank()) {
                 Text(
                     service.notes,
                     style = MaterialTheme.typography.bodySmall,
@@ -196,6 +232,11 @@ private fun ServiceCard(service: Service, onClick: () -> Unit) {
                 )
             }
         }
+        Icon(
+            Icons.Default.ChevronRight,
+            contentDescription = "Edit ${service.jobName}",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
