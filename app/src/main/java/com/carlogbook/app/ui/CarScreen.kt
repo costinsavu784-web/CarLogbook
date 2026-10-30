@@ -15,6 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -24,13 +27,11 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -48,7 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,9 +58,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.carlogbook.app.data.Car
 import com.carlogbook.app.data.LastCar
 import com.carlogbook.app.data.Service
+import com.carlogbook.app.domain.Catalog
+import com.carlogbook.app.domain.CategoryStatus
 import com.carlogbook.app.domain.Fmt
-import com.carlogbook.app.domain.ReminderStatus
-import com.carlogbook.app.domain.Upcoming
 import com.carlogbook.app.notify.ReminderScheduler
 
 private const val TAB_OVERVIEW = 0
@@ -77,7 +78,8 @@ fun CarScreen(
     onBack: () -> Unit,
     onAddService: () -> Unit,
     onEditService: (Long) -> Unit,
-    onEditCar: () -> Unit
+    onEditCar: () -> Unit,
+    onOpenCategory: (String) -> Unit
 ) {
     val context = LocalContext.current
     LaunchedEffect(carId) { LastCar.set(context, carId) }
@@ -89,6 +91,7 @@ fun CarScreen(
     val services by servicesFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val upcoming by upcomingFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val currentCar = car
+    val categories = remember(upcoming, services) { Catalog.status(upcoming, services) }
 
     var tab by rememberSaveable { mutableIntStateOf(TAB_OVERVIEW) }
 
@@ -143,9 +146,10 @@ fun CarScreen(
         when (tab) {
             TAB_OVERVIEW -> OverviewTab(
                 car = currentCar,
-                upcoming = upcoming,
+                categories = categories,
                 hasServices = services.isNotEmpty(),
                 onUpdateOdometer = { showOdometer = true },
+                onOpenCategory = onOpenCategory,
                 modifier = Modifier.padding(padding)
             )
             else -> HistoryTab(
@@ -164,9 +168,10 @@ fun CarScreen(
 @Composable
 private fun OverviewTab(
     car: Car?,
-    upcoming: List<Upcoming>,
+    categories: List<CategoryStatus>,
     hasServices: Boolean,
     onUpdateOdometer: () -> Unit,
+    onOpenCategory: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -178,33 +183,77 @@ private fun OverviewTab(
             item(key = "odometer") { OdometerCard(car, onUpdateOdometer) }
         }
 
-        if (upcoming.isEmpty()) {
-            item(key = "empty") {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        if (hasServices) {
-                            "No component has a reminder yet.\nWhen you log a service, fill in “Every … km” or “Every … months” to track its life here."
-                        } else {
-                            "Nothing logged yet.\nTap “Add service” to log the first one."
-                        },
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        } else {
-            item(key = "title") {
+        item(key = "title") {
+            Text(
+                "Components",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        if (!hasServices) {
+            item(key = "hint") {
                 Text(
-                    "Component life",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 4.dp)
+                    "Nothing logged yet. Open a category to see its parts, or tap “Add service”.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            items(upcoming, key = { it.jobName.lowercase() }) { item -> ComponentCard(item) }
+        }
+        items(categories, key = { it.category.id }) { cat ->
+            CategoryCard(cat, onClick = { onOpenCategory(cat.category.id) })
+        }
+    }
+}
+
+/** One category: name, a colour dot for its worst component, and a one-line summary. */
+@Composable
+private fun CategoryCard(cat: CategoryStatus, onClick: () -> Unit) {
+    val worst = cat.worst
+    val color = statusColor(worst)
+    val knownCount = cat.known.size
+    val total = cat.components.size
+
+    val summary = when {
+        knownCount == 0 -> "Life unknown for all $total components"
+        else -> {
+            val urgent = cat.mostUrgent!!
+            val head = "${urgent.component.name}: ${lifeHeadline(urgent.upcoming!!).lowercase()}"
+            if (knownCount < total) "$head · ${total - knownCount} unknown" else head
+        }
+    }
+
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(if (worst == null) color.copy(alpha = 0.3f) else color)
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(cat.category.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (worst == null) MaterialTheme.colorScheme.onSurfaceVariant else color,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                "$knownCount/$total",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -228,91 +277,6 @@ private fun OdometerCard(car: Car, onUpdate: () -> Unit) {
             }
         }
     }
-}
-
-/** One component: name, how much is left (in km and/or time), and a bar that empties as it wears. */
-@Composable
-private fun ComponentCard(item: Upcoming) {
-    val barColor = when (item.status) {
-        ReminderStatus.OVERDUE -> MaterialTheme.colorScheme.error
-        ReminderStatus.DUE_SOON -> Color(0xFFE59400)
-        ReminderStatus.OK -> MaterialTheme.colorScheme.primary
-    }
-    val container = when (item.status) {
-        ReminderStatus.OVERDUE -> MaterialTheme.colorScheme.errorContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = container)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    item.jobName,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    lifeHeadline(item),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = barColor
-                )
-            }
-
-            LinearProgressIndicator(
-                progress = { item.lifeLeft },
-                color = barColor,
-                trackColor = barColor.copy(alpha = 0.2f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-            )
-
-            Text(lifeDetails(item), style = MaterialTheme.typography.bodySmall)
-            Text(
-                "Last done ${Fmt.date(item.lastDoneDay)} at ${Fmt.km(item.lastDoneKm)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-/** The one number that matters most: whichever of km or time runs out first. */
-private fun lifeHeadline(item: Upcoming): String {
-    if (item.status == ReminderStatus.OVERDUE) return "Overdue"
-    val km = item.remainingKm
-    val days = item.remainingDays
-    val kmLife = item.kmLifeLeft
-    val timeLife = item.timeLifeLeft
-    val useKm = when {
-        km == null -> false
-        days == null -> true
-        else -> (kmLife ?: 1f) <= (timeLife ?: 1f)
-    }
-    return if (useKm) "${Fmt.km(km!!)} left" else "${Fmt.span(days!!)} left"
-}
-
-/** Both limits spelled out, for example "6,000 km left (due at 90,000 km) · 3 months left (due 12 Mar 2027)". */
-private fun lifeDetails(item: Upcoming): String {
-    val parts = mutableListOf<String>()
-    val km = item.remainingKm
-    val dueKm = item.dueKm
-    if (km != null && dueKm != null) {
-        parts += if (km <= 0) "overdue by ${Fmt.km(-km)}" else "${Fmt.km(km)} left (due at ${Fmt.km(dueKm)})"
-    }
-    val days = item.remainingDays
-    val dueDay = item.dueDay
-    if (days != null && dueDay != null) {
-        parts += when {
-            days < 0 -> "overdue by ${Fmt.span(-days)}"
-            days == 0L -> "due today"
-            else -> "${Fmt.span(days)} left (due ${Fmt.date(dueDay)})"
-        }
-    }
-    return parts.joinToString(" · ").replaceFirstChar { it.uppercase() }
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 package com.carlogbook.app.ui
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,21 +56,43 @@ fun AppNav(vm: MainViewModel = viewModel()) {
                 onBack = { nav.popBackStack() },
                 onAddService = { nav.navigate("service_edit/$carId/0") },
                 onEditService = { serviceId -> nav.navigate("service_edit/$carId/$serviceId") },
-                onEditCar = { nav.navigate("car_edit/$carId") }
+                onEditCar = { nav.navigate("car_edit/$carId") },
+                onOpenCategory = { categoryId -> nav.navigate("category/$carId/$categoryId") }
             )
         }
 
         composable(
-            route = "service_edit/{carId}/{serviceId}",
+            route = "category/{carId}/{categoryId}",
             arguments = listOf(
                 navArgument("carId") { type = NavType.LongType },
-                navArgument("serviceId") { type = NavType.LongType }
+                navArgument("categoryId") { type = NavType.StringType }
+            )
+        ) { entry ->
+            val carId = entry.arguments?.getLong("carId") ?: 0L
+            CategoryScreen(
+                vm = vm,
+                carId = carId,
+                categoryId = entry.arguments?.getString("categoryId") ?: "",
+                onBack = { nav.popBackStack() },
+                onLogComponent = { job ->
+                    nav.navigate("service_edit/$carId/0?job=${Uri.encode(job)}")
+                }
+            )
+        }
+
+        composable(
+            route = "service_edit/{carId}/{serviceId}?job={job}",
+            arguments = listOf(
+                navArgument("carId") { type = NavType.LongType },
+                navArgument("serviceId") { type = NavType.LongType },
+                navArgument("job") { type = NavType.StringType; nullable = true; defaultValue = null }
             )
         ) { entry ->
             ServiceEditScreen(
                 vm = vm,
                 carId = entry.arguments?.getLong("carId") ?: 0L,
                 serviceId = entry.arguments?.getLong("serviceId") ?: 0L,
+                initialJob = entry.arguments?.getString("job"),
                 onDone = { nav.popBackStack() }
             )
         }

@@ -83,7 +83,9 @@ fun ServiceEditScreen(
     vm: MainViewModel,
     carId: Long,
     serviceId: Long,
-    onDone: () -> Unit
+    onDone: () -> Unit,
+    /** Job to start with when opened from a component in the overview. */
+    initialJob: String? = null
 ) {
     val isNew = serviceId == 0L
     val scope = rememberCoroutineScope()
@@ -104,6 +106,17 @@ fun ServiceEditScreen(
                 val car = vm.getCar(carId)
                 if (car != null && car.currentOdometerKm > 0) {
                     odometer = car.currentOdometerKm.toString()
+                }
+                val job = initialJob?.trim()
+                if (!job.isNullOrEmpty()) {
+                    val last = vm.lastInterval(carId, job)
+                    jobs.add(
+                        JobEntry(
+                            name = job,
+                            intervalKm = last?.intervalKm?.toString() ?: "",
+                            intervalMonths = last?.intervalMonths?.toString() ?: ""
+                        )
+                    )
                 }
             } else {
                 val service = vm.getService(serviceId)

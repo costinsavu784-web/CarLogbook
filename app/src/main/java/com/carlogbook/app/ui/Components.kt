@@ -53,26 +53,5 @@ fun ConfirmDialog(
     )
 }
 
-/** Common jobs offered as quick picks when adding a service. */
-val DefaultJobNames = listOf(
-    "Oil change",
-    "Oil filter",
-    "Air filter",
-    "Cabin filter",
-    "Fuel filter",
-    "Spark plugs",
-    "Brake pads (front)",
-    "Brake pads (rear)",
-    "Brake discs",
-    "Brake fluid",
-    "Coolant",
-    "Transmission fluid",
-    "Tyres",
-    "Tyre rotation",
-    "Wheel alignment",
-    "Battery",
-    "Wiper blades",
-    "Timing belt",
-    "Inspection",
-    "Technical inspection"
-)
+/** Jobs offered as quick picks when adding a service: every component in the catalogue. */
+val DefaultJobNames: List<String> = com.carlogbook.app.domain.Catalog.allComponentNames
