@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,7 +48,8 @@ fun CarsScreen(
     vm: MainViewModel,
     onOpenCar: (Long) -> Unit,
     onAddCar: () -> Unit,
-    onEditCar: (Long) -> Unit
+    onEditCar: (Long) -> Unit,
+    onBackup: () -> Unit
 ) {
     val cars by vm.cars.collectAsStateWithLifecycle()
     val updateVm: UpdateViewModel = viewModel()
@@ -59,6 +61,9 @@ fun CarsScreen(
             TopAppBar(
                 title = { Text("My garage") },
                 actions = {
+                    IconButton(onClick = onBackup) {
+                        Icon(Icons.Default.SaveAlt, contentDescription = "Backup and restore")
+                    }
                     IconButton(onClick = updateVm::checkNow, enabled = updateState !is UpdateState.Checking) {
                         Icon(Icons.Default.SystemUpdate, contentDescription = "Check for updates")
                     }

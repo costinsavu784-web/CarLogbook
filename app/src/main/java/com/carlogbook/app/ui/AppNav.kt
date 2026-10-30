@@ -39,7 +39,8 @@ fun AppNav(vm: MainViewModel = viewModel()) {
                 vm = vm,
                 onOpenCar = { nav.navigate("history/$it") },
                 onAddCar = { nav.navigate("car_edit/0") },
-                onEditCar = { nav.navigate("car_edit/$it") }
+                onEditCar = { nav.navigate("car_edit/$it") },
+                onBackup = { nav.navigate("backup") }
             )
         }
 
@@ -84,6 +85,10 @@ fun AppNav(vm: MainViewModel = viewModel()) {
                 onDone = { nav.popBackStack() },
                 onDeleted = { nav.popBackStack("cars", inclusive = false) }
             )
+        }
+
+        composable("backup") {
+            BackupScreen(vm = vm, onBack = { nav.popBackStack() })
         }
 
         composable(

@@ -28,6 +28,10 @@ interface CarDao {
 
     @Query("DELETE FROM cars WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /** Removes every car; services go with them through the foreign key cascade. */
+    @Query("DELETE FROM cars")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -46,6 +50,9 @@ interface ServiceDao {
 
     @Insert
     suspend fun insert(service: Service): Long
+
+    @Insert
+    suspend fun insertAll(services: List<Service>)
 
     @Update
     suspend fun update(service: Service)

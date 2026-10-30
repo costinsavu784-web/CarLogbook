@@ -1,25 +1,34 @@
 package com.carlogbook.app.ui
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.carlogbook.app.data.BackupCodec
 import com.carlogbook.app.data.Car
+import com.carlogbook.app.data.CarBackup
 import com.carlogbook.app.data.CarDatabase
 import com.carlogbook.app.data.Service
 import com.carlogbook.app.domain.ReminderCalculator
 import com.carlogbook.app.domain.Upcoming
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
+
+/** How many cars and services a backup contains. */
+data class BackupSummary(val cars: Int, val services: Int)
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val carDao = CarDatabase.get(app).carDao()
-    private val serviceDao = CarDatabase.get(app).serviceDao()
+    private val db = CarDatabase.get(app)
+    private val carDao = db.carDao()
+    private val serviceDao = db.serviceDao()
 
     val cars: StateFlow<List<Car>> = carDao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -69,6 +78,31 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun deleteService(id: Long) {
         viewModelScope.launch { serviceDao.deleteById(id) }
+    }
+
+    /** Writes the whole garage as JSON to the given file (chosen by the user through the system picker). */
+    suspend fun exportBackup(uri: Uri): BackupSummary = withContext(Dispatchers.IO) {
+        val garage = db.exportGarage()
+        val json = BackupCodec.encode(garage)
+        val resolver = getApplication<Application>().contentResolver
+        // "wt" truncates: without it an older, longer file would keep its tail.
+        val out = resolver.openOutputStream(uri, "wt") ?: error("Could not open the file for writing.")
+        out.bufferedWriter().use { it.write(json) }
+        BackupSummary(garage.size, garage.sumOf { it.services.size })
+    }
+
+    /** Reads a backup file without changing anything, so the user can confirm before importing. */
+    suspend fun readBackup(uri: Uri): List<CarBackup> = withContext(Dispatchers.IO) {
+        val resolver = getApplication<Application>().contentResolver
+        val input = resolver.openInputStream(uri) ?: error("Could not open the file.")
+        val json = input.bufferedReader().use { it.readText() }
+        BackupCodec.decode(json)
+    }
+
+    /** Replaces the current garage with the backup contents. */
+    suspend fun importBackup(garage: List<CarBackup>): BackupSummary = withContext(Dispatchers.IO) {
+        db.importGarage(garage)
+        BackupSummary(garage.size, garage.sumOf { it.services.size })
     }
 
     fun updateOdometer(carId: Long, km: Int) {
