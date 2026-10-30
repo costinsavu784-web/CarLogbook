@@ -74,9 +74,28 @@ fun AppNav(vm: MainViewModel = viewModel()) {
                 carId = carId,
                 categoryId = entry.arguments?.getString("categoryId") ?: "",
                 onBack = { nav.popBackStack() },
-                onLogComponent = { job ->
-                    nav.navigate("service_edit/$carId/0?job=${Uri.encode(job)}")
+                onOpenComponent = { name ->
+                    nav.navigate("component/$carId/${Uri.encode(name)}")
                 }
+            )
+        }
+
+        composable(
+            route = "component/{carId}/{name}",
+            arguments = listOf(
+                navArgument("carId") { type = NavType.LongType },
+                navArgument("name") { type = NavType.StringType }
+            )
+        ) { entry ->
+            val carId = entry.arguments?.getLong("carId") ?: 0L
+            val name = entry.arguments?.getString("name") ?: ""
+            ComponentScreen(
+                vm = vm,
+                carId = carId,
+                componentName = name,
+                onBack = { nav.popBackStack() },
+                onAddService = { nav.navigate("service_edit/$carId/0?job=${Uri.encode(name)}") },
+                onEditService = { serviceId -> nav.navigate("service_edit/$carId/$serviceId") }
             )
         }
 

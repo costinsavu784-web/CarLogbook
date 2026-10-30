@@ -52,7 +52,7 @@ fun CategoryScreen(
     carId: Long,
     categoryId: String,
     onBack: () -> Unit,
-    onLogComponent: (String) -> Unit
+    onOpenComponent: (String) -> Unit
 ) {
     val upcomingFlow = remember(carId) { vm.upcoming(carId) }
     val servicesFlow = remember(carId) { vm.services(carId) }
@@ -132,9 +132,9 @@ fun CategoryScreen(
             item(key = "hint") {
                 Text(
                     if (isOther) {
-                        "Jobs that are not in any category. Use ⋮ to file one where you want it."
+                        "Jobs that are not in any category. Tap one to see its history, or use ⋮ to file it where you want it."
                     } else {
-                        "Tap a component to log a service for it. Use ⋮ to move it to another category."
+                        "Tap a component to see its history and log a service. Use ⋮ to move it or change its type."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -147,7 +147,7 @@ fun CategoryScreen(
             items(ordered, key = { it.component.name.lowercase() }) { status ->
                 ComponentCard(
                     status = status,
-                    onClick = { onLogComponent(status.component.name) },
+                    onClick = { onOpenComponent(status.component.name) },
                     trailing = {
                         ComponentMenu(
                             wears = status.component.wears,
