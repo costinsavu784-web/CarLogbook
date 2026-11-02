@@ -28,6 +28,10 @@ object Notifications {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
+    fun cancel(context: Context, id: Int) {
+        NotificationManagerCompat.from(context).cancel(id)
+    }
+
     /** Shows (or replaces) one notification. The same id always replaces the same notification. */
     fun show(context: Context, id: Int, title: String, text: String) {
         if (Build.VERSION.SDK_INT >= 33 &&

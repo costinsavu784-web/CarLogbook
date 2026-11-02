@@ -49,8 +49,9 @@ object ReminderCalculator {
     fun compute(car: Car, services: List<Service>, today: LocalDate = LocalDate.now()): List<Upcoming> {
         val todayDay = today.toEpochDay()
 
+        // Group by component, not by spelling: "Oil change", "Engine oil" and "Olio motore" are one job.
         return services
-            .groupBy { it.jobName.trim().lowercase() }
+            .groupBy { Catalog.componentKey(it.jobName) }
             .values
             .mapNotNull { group ->
                 val newestFirst = group.sortedWith(

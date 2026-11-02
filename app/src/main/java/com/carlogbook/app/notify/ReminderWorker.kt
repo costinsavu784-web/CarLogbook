@@ -30,13 +30,16 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
         for (car in db.carDao().getAll()) {
             val services = db.serviceDao().getForCar(car.id)
 
-            val due = ReminderCalculator.compute(car, services, today)
-                .filter { it.status != ReminderStatus.OK }
-            for (item in due) {
+            val all = ReminderCalculator.compute(car, services, today)
+            // Something logged since the last check? Take its notification down.
+            for (item in all.filter { it.status == ReminderStatus.OK }) {
+                Notifications.cancel(applicationContext, "${car.id}:${Catalog.componentKey(item.jobName)}".hashCode())
+            }
+            for (item in all.filter { it.status != ReminderStatus.OK }) {
                 val label = Catalog.builtInComponentFor(item.jobName)?.displayName ?: item.jobName
                 Notifications.show(
                     context = ctx,
-                    id = "${car.id}:${item.jobName.lowercase()}".hashCode(),
+                    id = "${car.id}:${Catalog.componentKey(item.jobName)}".hashCode(),
                     title = "$label · ${car.name}",
                     text = Fmt.describe(item).replaceFirstChar { it.uppercase() }
                 )
