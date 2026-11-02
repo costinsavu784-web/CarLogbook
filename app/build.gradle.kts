@@ -13,8 +13,8 @@ android {
         minSdk = 26
         targetSdk = 34
         // Bump both for every release. The git tag must be "v" + versionName (e.g. v1.1.0).
-        versionCode = 19
-        versionName = "1.13.2"
+        versionCode = 20
+        versionName = "1.14.0"
 
         // Where the app looks for updates (GitHub Releases of this repository).
         buildConfigField("String", "GITHUB_OWNER", "\"costinsavu784-web\"")
@@ -86,6 +86,11 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // Barcode scanning with Google's ready-made scanner UI (no camera permission, model lives in Play services).
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    // The scanner drags in an old fragment library; pin a current one so lint accepts the Activity Result APIs.
+    implementation("androidx.fragment:fragment-ktx:1.8.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

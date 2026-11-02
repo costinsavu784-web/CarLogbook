@@ -476,10 +476,14 @@ private fun JobDetailsCard(
                     }
                 )
             }
-            TextButton(onClick = { onChange(job.copy(parts = job.parts + PartEntry())) }) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(Modifier.width(4.dp))
-                Text(stringResource(if (job.parts.isEmpty()) R.string.add_part else R.string.add_another_part))
+            Row {
+                TextButton(onClick = { onChange(job.copy(parts = job.parts + PartEntry())) }) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(if (job.parts.isEmpty()) R.string.add_part else R.string.add_another_part))
+                }
+                // A scanned code becomes a new part line with the supplier number filled in.
+                ScanPartButton { code -> onChange(job.copy(parts = job.parts + PartEntry(supplier = code))) }
             }
         }
     }
@@ -519,6 +523,7 @@ private fun PartEditor(part: PartEntry, onChange: (PartEntry) -> Unit, onRemove:
                     onValueChange = { onChange(part.copy(oem = it)) },
                     label = { Text(stringResource(R.string.oem_number)) },
                     singleLine = true,
+                    trailingIcon = { ScanIconButton { onChange(part.copy(oem = it)) } },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -528,6 +533,7 @@ private fun PartEditor(part: PartEntry, onChange: (PartEntry) -> Unit, onRemove:
                 label = { Text(stringResource(R.string.supplier_number)) },
                 placeholder = { Text(stringResource(R.string.supplier_hint)) },
                 singleLine = true,
+                trailingIcon = { ScanIconButton { onChange(part.copy(supplier = it)) } },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(end = 8.dp)

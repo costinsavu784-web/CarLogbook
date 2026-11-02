@@ -121,6 +121,9 @@
     <string name="oem_number">Codice OEM</string>
     <string name="supplier_number">Codice fornitore / aftermarket</string>
     <string name="supplier_hint">Mann HU 8007 z</string>
+    <string name="scan_barcode">Scansiona codice a barre</string>
+    <string name="scan_part">Scansiona ricambio</string>
+    <string name="scan_failed">Impossibile aprire lo scanner. Controlla che Google Play Services sia aggiornato.</string>
     <string name="times_done">Interventi</string>
     <string name="avg_every">In media ogni</string>
     <string name="after_previous">%1$s dopo il precedente</string>

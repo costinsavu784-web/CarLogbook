@@ -253,10 +253,13 @@ private fun MountedCard(
                         onRemove = { entries.removeAt(index) }
                     )
                 }
-                TextButton(onClick = { entries.add(MountedEntry()) }) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.add_part))
+                Row {
+                    TextButton(onClick = { entries.add(MountedEntry()) }) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.add_part))
+                    }
+                    ScanPartButton { code -> entries.add(MountedEntry(supplier = code)) }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     if (isUserSet) {
@@ -314,6 +317,7 @@ private fun MountedEditor(entry: MountedEntry, onChange: (MountedEntry) -> Unit,
                 onValueChange = { onChange(entry.copy(oem = it)) },
                 label = { Text(stringResource(R.string.oem_number)) },
                 singleLine = true,
+                trailingIcon = { ScanIconButton { onChange(entry.copy(oem = it)) } },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -322,6 +326,7 @@ private fun MountedEditor(entry: MountedEntry, onChange: (MountedEntry) -> Unit,
             onValueChange = { onChange(entry.copy(supplier = it)) },
             label = { Text(stringResource(R.string.supplier_number)) },
             singleLine = true,
+            trailingIcon = { ScanIconButton { onChange(entry.copy(supplier = it)) } },
             modifier = Modifier.fillMaxWidth()
         )
         HorizontalDivider()

@@ -24,6 +24,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Ask Play services to download the barcode scanner module as soon as the app is installed. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
+
         <!-- Lets the system installer read the downloaded update APK from our cache. -->
         <provider
             android:name="androidx.core.content.FileProvider"
