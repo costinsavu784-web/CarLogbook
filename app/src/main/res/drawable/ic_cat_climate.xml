@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A/C snowflake. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round"
+        android:pathData="M12,3 v18 M4.2,7.5 l15.6,9 M19.8,7.5 l-15.6,9" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.7" android:strokeLineCap="round"
+        android:pathData="
+        M12,3 l-2,2 M12,3 l2,2 M12,21 l-2,-2 M12,21 l2,-2
+        M4.2,7.5 l0.73,2.73 M4.2,7.5 l2.73,-0.73 M19.8,16.5 l-0.73,-2.73 M19.8,16.5 l-2.73,0.73
+        M19.8,7.5 l-2.73,-0.73 M19.8,7.5 l-0.73,2.73 M4.2,16.5 l2.73,0.73 M4.2,16.5 l0.73,-2.73" />
+</vector>

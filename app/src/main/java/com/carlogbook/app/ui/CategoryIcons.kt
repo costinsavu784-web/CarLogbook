@@ -1,30 +1,28 @@
 package com.carlogbook.app.ui
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AcUnit
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.Album
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Compress
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.PrecisionManufacturing
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TireRepair
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
+import com.carlogbook.app.R
 import com.carlogbook.app.domain.Catalog
 
-/** One icon per category, keyed by the category id used in the catalogue. */
-fun categoryIcon(categoryId: String): ImageVector = when (categoryId) {
-    "engine" -> Icons.Default.PrecisionManufacturing
-    "brakes" -> Icons.Default.Album
-    "suspension" -> Icons.Default.Compress
-    "gearbox" -> Icons.Default.Settings
-    "tyres" -> Icons.Default.TireRepair
-    "electrical" -> Icons.Default.Bolt
-    "climate" -> Icons.Default.AcUnit
-    "exhaust" -> Icons.Default.Air
-    "body" -> Icons.Default.Description
-    Catalog.OTHER_ID -> Icons.Default.MoreHoriz
-    else -> Icons.Default.MoreHoriz
-}
+/**
+ * One icon per category, drawn in the style of dashboard warning lights (res/drawable/ic_cat_*).
+ * They are plain white shapes; the caller tints them with the status colour.
+ */
+@Composable
+fun categoryIcon(categoryId: String): Painter = painterResource(
+    when (categoryId) {
+        "engine" -> R.drawable.ic_cat_engine
+        "brakes" -> R.drawable.ic_cat_brakes
+        "suspension" -> R.drawable.ic_cat_suspension
+        "gearbox" -> R.drawable.ic_cat_gearbox
+        "tyres" -> R.drawable.ic_cat_tyres
+        "electrical" -> R.drawable.ic_cat_electrical
+        "climate" -> R.drawable.ic_cat_climate
+        "exhaust" -> R.drawable.ic_cat_exhaust
+        "body" -> R.drawable.ic_cat_body
+        Catalog.OTHER_ID -> R.drawable.ic_cat_other
+        else -> R.drawable.ic_cat_other
+    }
+)

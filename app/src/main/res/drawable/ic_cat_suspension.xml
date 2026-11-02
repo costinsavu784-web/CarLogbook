@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Suspension: coil spring between two plates. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M7,3 h10 M7,21 h10 M12,3 v2 l4,1.5 l-8,2.2 l8,2.2 l-8,2.2 l8,2.2 l-8,2.2 l4,1.5 v2" />
+</vector>

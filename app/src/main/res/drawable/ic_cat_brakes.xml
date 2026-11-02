@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brake warning light: (!) in a circle between two brackets. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:pathData="M12,12 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:pathData="M4.5,5.5 A9.5,9.5 0 0 0 4.5,18.5" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:pathData="M19.5,5.5 A9.5,9.5 0 0 1 19.5,18.5" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M11.1,8.3 h1.8 v4.6 h-1.8 Z M12,15.6 m-1.05,0 a1.05,1.05 0 1,0 2.1,0 a1.05,1.05 0 1,0 -2.1,0" />
+</vector>
