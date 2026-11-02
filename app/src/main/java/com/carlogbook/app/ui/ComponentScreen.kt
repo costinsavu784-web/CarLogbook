@@ -391,11 +391,6 @@ private fun HistoryRow(service: Service, parts: List<ServicePart>, previous: Ser
                     }
                 }
 
-                val repeat = repeatText(service)
-                if (repeat.isNotEmpty()) {
-                    Text(repeat, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                }
-
                 PartsSummary(parts)
 
                 if (service.notes.isNotBlank()) {

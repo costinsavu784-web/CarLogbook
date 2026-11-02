@@ -391,11 +391,6 @@ private fun JobRow(service: Service, parts: List<ServicePart>, showNotes: Boolea
         Column(modifier = Modifier.weight(1f)) {
             Text(jobLabel(service.jobName), style = MaterialTheme.typography.titleMedium)
 
-            val repeat = repeatText(service)
-            if (repeat.isNotEmpty()) {
-                Text(repeat, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            }
-
             PartsSummary(parts)
 
             if (showNotes && service.notes.isNotBlank()) {
