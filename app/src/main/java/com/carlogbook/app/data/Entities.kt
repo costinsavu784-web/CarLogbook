@@ -70,7 +70,10 @@ data class ServicePart(
     val name: String,
     val quantity: String = "",
     val oemNumber: String = "",
-    val supplierNumber: String = ""
+    val supplierNumber: String = "",
+    /** Raw barcode read from the box, and when. Evidence that the part was physically in hand. */
+    val scannedCode: String = "",
+    val scannedAtMillis: Long? = null
 )
 
 /** A service together with the parts used, as edited in the form before saving. */
@@ -100,7 +103,9 @@ data class MountedPart(
     val name: String,
     val quantity: String = "",
     val oemNumber: String = "",
-    val supplierNumber: String = ""
+    val supplierNumber: String = "",
+    val scannedCode: String = "",
+    val scannedAtMillis: Long? = null
 )
 
 /**

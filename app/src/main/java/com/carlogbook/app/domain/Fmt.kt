@@ -27,6 +27,11 @@ object Fmt {
 
     fun km(value: Int): String = NumberFormat.getIntegerInstance().format(value) + " km"
 
+    /** Date and time of a scan, e.g. "30 Oct 2026, 14:32". */
+    fun dateTime(millis: Long): String =
+        java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT))
+
     /** A number of days as "5 days", "3 weeks" or "4 months". */
     fun span(days: Long): String = when {
         days < 14 -> qty(R.plurals.days, days.toInt())

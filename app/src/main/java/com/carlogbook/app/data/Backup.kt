@@ -32,7 +32,7 @@ data class GarageBackup(
  */
 object BackupCodec {
 
-    const val FORMAT_VERSION = 4
+    const val FORMAT_VERSION = 5
     private const val APP_TAG = "CarLogbook"
 
     fun suggestedFileName(today: LocalDate = LocalDate.now()): String =
@@ -58,6 +58,8 @@ object BackupCodec {
                             .put("quantity", p.quantity)
                             .put("oem", p.oemNumber)
                             .put("supplier", p.supplierNumber)
+                            .put("scannedCode", p.scannedCode)
+                            .putOpt("scannedAt", p.scannedAtMillis)
                     )
                 }
                 services.put(
@@ -91,6 +93,8 @@ object BackupCodec {
                                     .put("quantity", m.quantity)
                                     .put("oem", m.oemNumber)
                                     .put("supplier", m.supplierNumber)
+                                    .put("scannedCode", m.scannedCode)
+                                    .putOpt("scannedAt", m.scannedAtMillis)
                             )
                         }
                     })
@@ -159,7 +163,9 @@ object BackupCodec {
                         name = p.optString("name"),
                         quantity = p.optString("quantity"),
                         oemNumber = p.optString("oem"),
-                        supplierNumber = p.optString("supplier")
+                        supplierNumber = p.optString("supplier"),
+                        scannedCode = p.optString("scannedCode"),
+                        scannedAtMillis = if (p.has("scannedAt") && !p.isNull("scannedAt")) p.getLong("scannedAt") else null
                     )
                 }.filter { it.name.isNotBlank() }
                 ServiceDraft(service, partList)
@@ -173,7 +179,9 @@ object BackupCodec {
                     name = m.optString("name"),
                     quantity = m.optString("quantity"),
                     oemNumber = m.optString("oem"),
-                    supplierNumber = m.optString("supplier")
+                    supplierNumber = m.optString("supplier"),
+                    scannedCode = m.optString("scannedCode"),
+                    scannedAtMillis = if (m.has("scannedAt") && !m.isNull("scannedAt")) m.getLong("scannedAt") else null
                 )
             }.filter { it.name.isNotBlank() && it.componentKey.isNotBlank() }
             CarBackup(car, list, mountedList)

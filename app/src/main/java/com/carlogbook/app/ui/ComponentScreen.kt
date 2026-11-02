@@ -183,7 +183,9 @@ private data class MountedEntry(
     val name: String = "",
     val quantity: String = "",
     val oem: String = "",
-    val supplier: String = ""
+    val supplier: String = "",
+    val scannedCode: String = "",
+    val scannedAt: Long? = null
 ) {
     val isBlank: Boolean get() = name.isBlank() && quantity.isBlank() && oem.isBlank() && supplier.isBlank()
 }
@@ -201,17 +203,17 @@ private fun MountedCard(
 
     val isUserSet = userSet.isNotEmpty()
     val shown: List<String> = if (isUserSet) {
-        userSet.map { partLine(it.name, it.quantity, it.oemNumber, it.supplierNumber) }
+        userSet.map { partLine(it.name, it.quantity, it.oemNumber, it.supplierNumber, it.scannedCode, it.scannedAtMillis) }
     } else {
-        fromLastService.map { partLine(it.name, it.quantity, it.oemNumber, it.supplierNumber) }
+        fromLastService.map { partLine(it.name, it.quantity, it.oemNumber, it.supplierNumber, it.scannedCode, it.scannedAtMillis) }
     }
 
     fun startEditing() {
         entries.clear()
         if (isUserSet) {
-            entries.addAll(userSet.map { MountedEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber) })
+            entries.addAll(userSet.map { MountedEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber, it.scannedCode, it.scannedAtMillis) })
         } else {
-            entries.addAll(fromLastService.map { MountedEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber) })
+            entries.addAll(fromLastService.map { MountedEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber, it.scannedCode, it.scannedAtMillis) })
         }
         if (entries.isEmpty()) entries.add(MountedEntry())
         editing = true
@@ -259,7 +261,7 @@ private fun MountedCard(
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.add_part))
                     }
-                    ScanPartButton { code -> entries.add(MountedEntry(supplier = code)) }
+                    ScanPartButton { s -> entries.add(MountedEntry(name = s.name, supplier = s.supplier, scannedCode = s.code, scannedAt = s.atMillis)) }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     if (isUserSet) {
@@ -277,7 +279,9 @@ private fun MountedCard(
                                     name = it.name.trim().ifEmpty { defaultPartName },
                                     quantity = it.quantity.trim(),
                                     oemNumber = it.oem.trim(),
-                                    supplierNumber = it.supplier.trim()
+                                    supplierNumber = it.supplier.trim(),
+                                    scannedCode = it.scannedCode,
+                                    scannedAtMillis = it.scannedAt
                                 )
                             }
                         )

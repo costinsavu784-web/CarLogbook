@@ -124,6 +124,9 @@
     <string name="scan_barcode">Scan barcode</string>
     <string name="scan_part">Scan part</string>
     <string name="scan_failed">Could not open the scanner. Check that Google Play services is up to date.</string>
+    <string name="lookup_searching">Looking up the product…</string>
+    <string name="lookup_not_found">Product not found online. Fill in the name by hand.</string>
+    <string name="scanned_on">Scanned %1$s · %2$s</string>
     <string name="times_done">Times done</string>
     <string name="avg_every">Avg. every</string>
     <string name="after_previous">%1$s after the previous one</string>

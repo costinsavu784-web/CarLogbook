@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Car::class, Service::class, ServicePart::class, MountedPart::class, ComponentPlacement::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class CarDatabase : RoomDatabase() {
@@ -86,8 +86,19 @@ abstract class CarDatabase : RoomDatabase() {
                     context.applicationContext,
                     CarDatabase::class.java,
                     "carlogbook.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .build().also { instance = it }
             }
+
+        /** Version 6 records the scanned barcode and scan time on parts. */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                for (table in listOf("service_parts", "mounted_parts")) {
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `scannedCode` TEXT NOT NULL DEFAULT ''")
+                    db.execSQL("ALTER TABLE `$table` ADD COLUMN `scannedAtMillis` INTEGER")
+                }
+            }
+        }
 
         /** Version 5 adds the user-set "currently mounted" parts per car and component. */
         private val MIGRATION_4_5 = object : Migration(4, 5) {

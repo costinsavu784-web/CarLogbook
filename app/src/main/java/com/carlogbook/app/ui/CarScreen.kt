@@ -412,13 +412,17 @@ private fun JobRow(service: Service, parts: List<ServicePart>, showNotes: Boolea
 
 /** "Oil filter · 1 · OEM 11 42 8 583 898 · Mann HU 8007 z", skipping blanks. */
 @Composable
-fun partLine(name: String, quantity: String, oem: String, supplier: String): String =
-    listOfNotNull(
+fun partLine(name: String, quantity: String, oem: String, supplier: String, scannedCode: String = "", scannedAt: Long? = null): String {
+    val main = listOfNotNull(
         name.ifBlank { null },
         quantity.ifBlank { null },
         oem.ifBlank { null }?.let { stringResource(R.string.oem_prefix, it) },
         supplier.ifBlank { null }
     ).joinToString(" · ")
+    // Scan evidence on its own line: when the box was in hand, and the exact code read.
+    val scan = scannedAt?.let { "\n   " + stringResource(R.string.scanned_on, Fmt.dateTime(it), scannedCode) } ?: ""
+    return main + scan
+}
 
 /** Parts used, one per line. */
 @Composable
@@ -427,7 +431,7 @@ fun PartsSummary(parts: List<ServicePart>) {
     Column {
         parts.forEach { p ->
             Text(
-                partLine(p.name, p.quantity, p.oemNumber, p.supplierNumber),
+                partLine(p.name, p.quantity, p.oemNumber, p.supplierNumber, p.scannedCode, p.scannedAtMillis),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

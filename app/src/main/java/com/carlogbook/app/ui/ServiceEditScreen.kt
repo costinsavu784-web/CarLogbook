@@ -72,7 +72,9 @@ private data class PartEntry(
     val name: String = "",
     val quantity: String = "",
     val oem: String = "",
-    val supplier: String = ""
+    val supplier: String = "",
+    val scannedCode: String = "",
+    val scannedAt: Long? = null
 ) {
     val isBlank: Boolean get() = name.isBlank() && quantity.isBlank() && oem.isBlank() && supplier.isBlank()
 }
@@ -91,7 +93,7 @@ private val JobsSaver = listSaver<SnapshotStateList<JobEntry>, String>(
         buildList {
             for (j in list) {
                 add(j.name); add(j.intervalKm); add(j.intervalMonths); add(j.parts.size.toString())
-                for (p in j.parts) { add(p.name); add(p.quantity); add(p.oem); add(p.supplier) }
+                for (p in j.parts) { add(p.name); add(p.quantity); add(p.oem); add(p.supplier); add(p.scannedCode); add(p.scannedAt?.toString() ?: "") }
             }
         }
     },
@@ -103,10 +105,10 @@ private val JobsSaver = listSaver<SnapshotStateList<JobEntry>, String>(
                 val n = flat[i + 3].toIntOrNull() ?: 0
                 i += 4
                 val parts = List(n) { k ->
-                    val b = i + k * 4
-                    PartEntry(flat[b], flat[b + 1], flat[b + 2], flat[b + 3])
+                    val b = i + k * 6
+                    PartEntry(flat[b], flat[b + 1], flat[b + 2], flat[b + 3], flat[b + 4], flat[b + 5].toLongOrNull())
                 }
-                i += n * 4
+                i += n * 6
                 add(JobEntry(name, km, months, parts))
             }
         }
@@ -142,6 +144,7 @@ fun ServiceEditScreen(
     /** Builds a job entry prefilled with the interval and parts used last time for this job. */
     suspend fun prefilledJob(name: String): JobEntry {
         val last = vm.lastInterval(carId, name)
+        // Scan evidence is not carried over: it belongs to the box you had in hand that time.
         val parts = vm.lastParts(carId, name).map { PartEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber) }
         return JobEntry(
             name = name,
@@ -163,7 +166,7 @@ fun ServiceEditScreen(
             } else {
                 val service = vm.getService(serviceId)
                 if (service != null) {
-                    val parts = vm.getParts(serviceId).map { PartEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber) }
+                    val parts = vm.getParts(serviceId).map { PartEntry(it.name, it.quantity, it.oemNumber, it.supplierNumber, it.scannedCode, it.scannedAtMillis) }
                     jobs.add(
                         JobEntry(
                             name = service.jobName,
@@ -378,7 +381,9 @@ fun ServiceEditScreen(
                                             name = it.name.trim().ifEmpty { defaultPartName },
                                             quantity = it.quantity.trim(),
                                             oemNumber = it.oem.trim(),
-                                            supplierNumber = it.supplier.trim()
+                                            supplierNumber = it.supplier.trim(),
+                                            scannedCode = it.scannedCode,
+                                            scannedAtMillis = it.scannedAt
                                         )
                                     }
                             )
@@ -483,7 +488,9 @@ private fun JobDetailsCard(
                     Text(stringResource(if (job.parts.isEmpty()) R.string.add_part else R.string.add_another_part))
                 }
                 // A scanned code becomes a new part line with the supplier number filled in.
-                ScanPartButton { code -> onChange(job.copy(parts = job.parts + PartEntry(supplier = code))) }
+                ScanPartButton { s ->
+                    onChange(job.copy(parts = job.parts + PartEntry(name = s.name, supplier = s.supplier, scannedCode = s.code, scannedAt = s.atMillis)))
+                }
             }
         }
     }
@@ -525,6 +532,13 @@ private fun PartEditor(part: PartEntry, onChange: (PartEntry) -> Unit, onRemove:
                     singleLine = true,
                     trailingIcon = { ScanIconButton { onChange(part.copy(oem = it)) } },
                     modifier = Modifier.weight(1f)
+                )
+            }
+            part.scannedAt?.let {
+                Text(
+                    stringResource(R.string.scanned_on, Fmt.dateTime(it), part.scannedCode),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             OutlinedTextField(
