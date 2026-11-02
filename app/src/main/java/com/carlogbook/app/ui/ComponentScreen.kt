@@ -100,7 +100,13 @@ fun ComponentScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(component.displayName) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(componentIcon(component), contentDescription = null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(component.displayName)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))

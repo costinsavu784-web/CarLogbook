@@ -1,23 +1,33 @@
 package com.carlogbook.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.carlogbook.app.R
+import com.carlogbook.app.domain.Component
 import com.carlogbook.app.domain.ComponentStatus
 import com.carlogbook.app.domain.Fmt
 import com.carlogbook.app.domain.ReminderStatus
@@ -45,14 +55,30 @@ fun ComponentCard(
 ) {
     val upcoming = status.upcoming
     when {
-        upcoming != null -> KnownComponentCard(status.component.displayName, upcoming, onClick, trailing)
+        upcoming != null -> KnownComponentCard(status.component, status.component.displayName, upcoming, onClick, trailing)
         status.component.wears -> UnknownComponentCard(status, onClick, trailing)
         else -> FixedComponentCard(status, onClick, trailing)
     }
 }
 
+/** The component's icon in a small tinted circle. */
+@Composable
+fun ComponentBadge(component: Component, tint: Color, size: Dp = 36.dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(tint.copy(alpha = 0.15f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(componentIcon(component), contentDescription = null, tint = tint, modifier = Modifier.size(size * 0.58f))
+    }
+    Spacer(Modifier.width(12.dp))
+}
+
 @Composable
 private fun KnownComponentCard(
+    component: Component,
     name: String,
     item: Upcoming,
     onClick: (() -> Unit)?,
@@ -66,6 +92,7 @@ private fun KnownComponentCard(
 
     CardShell(container, onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            ComponentBadge(component, barColor)
             Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text(lifeHeadline(item), style = MaterialTheme.typography.titleMedium, color = barColor)
             trailing?.invoke()
@@ -96,6 +123,7 @@ private fun UnknownComponentCard(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     CardShell(MaterialTheme.colorScheme.surface, onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            ComponentBadge(status.component, muted)
             Text(status.component.displayName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text(stringResource(R.string.life_unknown), style = MaterialTheme.typography.titleSmall, color = muted)
             trailing?.invoke()
@@ -123,6 +151,7 @@ private fun FixedComponentCard(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     CardShell(MaterialTheme.colorScheme.surface, onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            ComponentBadge(status.component, muted)
             Text(status.component.displayName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text(stringResource(R.string.replace_when_faulty), style = MaterialTheme.typography.titleSmall, color = muted)
             trailing?.invoke()
