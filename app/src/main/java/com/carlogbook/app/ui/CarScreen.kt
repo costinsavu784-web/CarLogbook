@@ -240,12 +240,22 @@ private fun CategoryCard(cat: CategoryStatus, onClick: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Icon in a tinted circle: colour tells the state of the worst component inside.
+            val tint = if (worst == null) MaterialTheme.colorScheme.onSurfaceVariant else color
             Box(
                 modifier = Modifier
-                    .size(12.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(if (worst == null) color.copy(alpha = 0.3f) else color)
-            )
+                    .background(tint.copy(alpha = if (worst == null) 0.10f else 0.18f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    categoryIcon(cat.category.id),
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(cat.category.displayName, style = MaterialTheme.typography.titleMedium)
