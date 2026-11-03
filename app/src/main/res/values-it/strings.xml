@@ -131,6 +131,9 @@
     <string name="scan_code_read">Codice letto: %1$s (%2$s)</string>
     <string name="scan_not_retail">Questa è un’etichetta con codice ricambio, non un codice a barre commerciale: niente da cercare. Scrivi il nome.</string>
     <string name="scan_again">Scansiona di nuovo</string>
+    <string name="scan_store_label">Sembra l’etichetta del negozio, non il codice a barre del produttore. Cerca il codice stampato sulla confezione e scansiona di nuovo.</string>
+    <string name="lookup_remembered">Riconosciuto da una scansione precedente.</string>
+    <string name="lookup_will_remember">Scrivi il nome una volta: alla prossima scansione di questo codice si compilerà da solo.</string>
     <string name="times_done">Interventi</string>
     <string name="avg_every">In media ogni</string>
     <string name="after_previous">%1$s dopo il precedente</string>

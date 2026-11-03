@@ -15,7 +15,8 @@ data class CarBackup(
 /** The whole garage: cars with their services, plus where the user filed components. */
 data class GarageBackup(
     val cars: List<CarBackup>,
-    val placements: List<ComponentPlacement> = emptyList()
+    val placements: List<ComponentPlacement> = emptyList(),
+    val knownProducts: List<KnownProduct> = emptyList()
 ) {
     val serviceCount: Int get() = cars.sumOf { it.services.size }
     val partCount: Int get() = cars.sumOf { c -> c.services.sumOf { it.parts.size } }
@@ -32,7 +33,7 @@ data class GarageBackup(
  */
 object BackupCodec {
 
-    const val FORMAT_VERSION = 5
+    const val FORMAT_VERSION = 6
     private const val APP_TAG = "CarLogbook"
 
     fun suggestedFileName(today: LocalDate = LocalDate.now()): String =
@@ -112,6 +113,12 @@ object BackupCodec {
             )
         }
         root.put("placements", placements)
+
+        val known = JSONArray()
+        for (k in backup.knownProducts) {
+            known.put(JSONObject().put("code", k.code).put("name", k.name).put("supplier", k.supplierNumber).put("oem", k.oemNumber))
+        }
+        root.put("knownProducts", known)
 
         return root.toString(2)
     }
@@ -199,7 +206,13 @@ object BackupCodec {
             )
         }.filter { it.name.isNotEmpty() }
 
-        return GarageBackup(carList, placementList)
+        val known = root.optJSONArray("knownProducts") ?: JSONArray()
+        val knownList = List(known.length()) { i ->
+            val k = known.getJSONObject(i)
+            KnownProduct(k.optString("code").trim(), k.optString("name"), k.optString("supplier"), k.optString("oem"))
+        }.filter { it.code.isNotEmpty() && it.name.isNotBlank() }
+
+        return GarageBackup(carList, placementList, knownList)
     }
 
     private fun JSONObject.optIntOrNull(key: String): Int? =

@@ -109,6 +109,18 @@ data class MountedPart(
 )
 
 /**
+ * A barcode the user has already identified once. Next time the same code is scanned, the name
+ * and numbers come back instantly, offline. Shared by all cars.
+ */
+@Entity(tableName = "known_products")
+data class KnownProduct(
+    @PrimaryKey val code: String,
+    val name: String,
+    val supplierNumber: String = "",
+    val oemNumber: String = ""
+)
+
+/**
  * Where the user wants a component to appear in the overview. Overrides the built-in catalogue
  * and also lets the user add components the catalogue does not know. Shared by all cars.
  * `key` is the name in lower case; `name` keeps the user's spelling.

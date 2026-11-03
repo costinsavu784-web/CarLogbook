@@ -9,6 +9,7 @@ import com.carlogbook.app.data.Car
 import com.carlogbook.app.data.CarDatabase
 import com.carlogbook.app.data.ComponentPlacement
 import com.carlogbook.app.data.GarageBackup
+import com.carlogbook.app.data.KnownProduct
 import com.carlogbook.app.data.MountedPart
 import com.carlogbook.app.data.Service
 import com.carlogbook.app.data.ServiceDraft
@@ -159,6 +160,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     /** Stores what the user says is on the car now. An empty list goes back to "from the last service". */
     fun setMounted(carId: Long, componentName: String, parts: List<MountedPart>) {
         viewModelScope.launch { db.setMounted(carId, Catalog.componentKey(componentName), parts) }
+    }
+
+    // --- Known barcodes ------------------------------------------------------------------------
+
+    private val knownProductDao = db.knownProductDao()
+
+    suspend fun knownProduct(code: String): KnownProduct? = knownProductDao.get(code.trim())
+
+    /** Remembers what a barcode stands for, so the next scan of it needs no typing. */
+    fun rememberProduct(code: String, name: String, supplier: String, oem: String = "") {
+        val c = code.trim()
+        if (c.isEmpty() || name.isBlank()) return
+        viewModelScope.launch { knownProductDao.upsert(KnownProduct(c, name.trim(), supplier.trim(), oem.trim())) }
     }
 
     // --- Component placement -----------------------------------------------------------------

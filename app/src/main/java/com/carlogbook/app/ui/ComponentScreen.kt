@@ -133,6 +133,7 @@ fun ComponentScreen(
 
             item(key = "mounted") {
                 MountedCard(
+                    vm = vm,
                     userSet = mountedOverride,
                     fromLastService = lastServiceParts,
                     lastService = lastServiceWithParts,
@@ -192,6 +193,7 @@ private data class MountedEntry(
 
 @Composable
 private fun MountedCard(
+    vm: MainViewModel,
     userSet: List<MountedPart>,
     fromLastService: List<ServicePart>,
     lastService: Service?,
@@ -261,7 +263,7 @@ private fun MountedCard(
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.add_part))
                     }
-                    ScanPartButton { s -> entries.add(MountedEntry(name = s.name, supplier = s.supplier, scannedCode = s.code, scannedAt = s.atMillis)) }
+                    ScanPartButton(vm) { s -> entries.add(MountedEntry(name = s.name, supplier = s.supplier, scannedCode = s.code, scannedAt = s.atMillis)) }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     if (isUserSet) {

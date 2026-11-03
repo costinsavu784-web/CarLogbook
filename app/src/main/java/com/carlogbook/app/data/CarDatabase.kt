@@ -9,8 +9,8 @@ import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Car::class, Service::class, ServicePart::class, MountedPart::class, ComponentPlacement::class],
-    version = 6,
+    entities = [Car::class, Service::class, ServicePart::class, MountedPart::class, ComponentPlacement::class, KnownProduct::class],
+    version = 7,
     exportSchema = false
 )
 abstract class CarDatabase : RoomDatabase() {
@@ -19,6 +19,7 @@ abstract class CarDatabase : RoomDatabase() {
     abstract fun partDao(): PartDao
     abstract fun mountedDao(): MountedDao
     abstract fun placementDao(): PlacementDao
+    abstract fun knownProductDao(): KnownProductDao
 
     /** Everything in the database, ready to be written to a backup file. */
     suspend fun exportGarage(): GarageBackup = GarageBackup(
@@ -30,7 +31,8 @@ abstract class CarDatabase : RoomDatabase() {
                 mounted = mountedDao().getForCar(car.id)
             )
         },
-        placements = placementDao().getAll()
+        placements = placementDao().getAll(),
+        knownProducts = knownProductDao().getAll()
     )
 
     /**
@@ -49,6 +51,8 @@ abstract class CarDatabase : RoomDatabase() {
         }
         placementDao().deleteAll()
         placementDao().upsertAll(backup.placements)
+        knownProductDao().deleteAll()
+        knownProductDao().upsertAll(backup.knownProducts)
     }
 
     /** Replaces what the user says is mounted on a component. An empty list removes the override. */
@@ -86,9 +90,19 @@ abstract class CarDatabase : RoomDatabase() {
                     context.applicationContext,
                     CarDatabase::class.java,
                     "carlogbook.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .build().also { instance = it }
             }
+
+        /** Version 7 remembers barcodes the user has identified. */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `known_products` (`code` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                        "`supplierNumber` TEXT NOT NULL, `oemNumber` TEXT NOT NULL, PRIMARY KEY(`code`))"
+                )
+            }
+        }
 
         /** Version 6 records the scanned barcode and scan time on parts. */
         private val MIGRATION_5_6 = object : Migration(5, 6) {

@@ -31,6 +31,20 @@ object ProductLookup {
             }
     }
 
+    /**
+     * True when an EAN/UPC is a retailer's internal label rather than a manufacturer code: GS1 keeps
+     * prefixes 02, 04 and 20-29 for in-store use, and some prefixes (such as 525) are not assigned at all.
+     * Such codes will never be found online and are useless as evidence of the product.
+     */
+    fun looksLikeStoreLabel(code: String): Boolean {
+        if (!looksLikeGtin(code)) return false
+        val ean = if (code.length == 12) "0$code" else code
+        if (ean.length != 13) return false
+        val p2 = ean.substring(0, 2).toInt()
+        val p3 = ean.substring(0, 3).toInt()
+        return p2 == 2 || p2 == 4 || p2 in 20..29 || p3 in 522..527 || p3 in 532..534 || p3 in 536..538
+    }
+
     /** EAN-8, UPC-A, EAN-13, GTIN-14: all digits, these lengths. Part numbers from Code 128 are not. */
     fun looksLikeGtin(code: String): Boolean =
         code.length in setOf(8, 12, 13, 14) && code.all { it.isDigit() }

@@ -131,6 +131,9 @@
     <string name="scan_code_read">Code read: %1$s (%2$s)</string>
     <string name="scan_not_retail">This is a part-number label, not a retail barcode, so there is nothing to look up. Type the name.</string>
     <string name="scan_again">Scan again</string>
+    <string name="scan_store_label">This looks like a shop sticker, not the manufacturer’s barcode. Look for the code printed on the packaging itself and scan again.</string>
+    <string name="lookup_remembered">Recognised from a previous scan.</string>
+    <string name="lookup_will_remember">Type the name once: next time this code is scanned it fills in by itself.</string>
     <string name="times_done">Times done</string>
     <string name="avg_every">Avg. every</string>
     <string name="after_previous">%1$s after the previous one</string>

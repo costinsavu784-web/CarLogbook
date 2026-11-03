@@ -96,6 +96,24 @@ interface MountedDao {
 }
 
 @Dao
+interface KnownProductDao {
+    @Query("SELECT * FROM known_products WHERE code = :code")
+    suspend fun get(code: String): KnownProduct?
+
+    @Query("SELECT * FROM known_products")
+    suspend fun getAll(): List<KnownProduct>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(product: KnownProduct)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(products: List<KnownProduct>)
+
+    @Query("DELETE FROM known_products")
+    suspend fun deleteAll()
+}
+
+@Dao
 interface PlacementDao {
     @Query("SELECT * FROM component_placements")
     fun observeAll(): Flow<List<ComponentPlacement>>

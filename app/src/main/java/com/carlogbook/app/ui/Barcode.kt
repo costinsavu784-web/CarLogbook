@@ -98,7 +98,7 @@ fun ScanIconButton(onScanned: (String) -> Unit) {
  * online (editable), and a "Scan again" button for when the camera caught the wrong barcode.
  */
 @Composable
-fun ScanPartButton(onScanned: (ScannedPart) -> Unit) {
+fun ScanPartButton(vm: MainViewModel, onScanned: (ScannedPart) -> Unit) {
     val context = LocalContext.current
     val failed = stringResource(R.string.scan_failed)
     var pending by remember { mutableStateOf<ScanRead?>(null) }
@@ -109,10 +109,12 @@ fun ScanPartButton(onScanned: (ScannedPart) -> Unit) {
 
     pending?.let { read ->
         ScanReviewDialog(
+            vm = vm,
             read = read,
             onScanAgain = { pending = null; scan() },
             onCancel = { pending = null },
             onAdd = { name, supplier ->
+                vm.rememberProduct(read.code, name, supplier)
                 onScanned(ScannedPart(read.code, read.atMillis, name, supplier))
                 pending = null
             }
@@ -128,25 +130,40 @@ fun ScanPartButton(onScanned: (ScannedPart) -> Unit) {
 
 @Composable
 private fun ScanReviewDialog(
+    vm: MainViewModel,
     read: ScanRead,
     onScanAgain: () -> Unit,
     onCancel: () -> Unit,
     onAdd: (name: String, supplier: String) -> Unit
 ) {
     val isGtin = ProductLookup.looksLikeGtin(read.code)
-    var looking by remember(read.code) { mutableStateOf(isGtin) }
+    val storeLabel = ProductLookup.looksLikeStoreLabel(read.code)
+    var looking by remember(read.code) { mutableStateOf(true) }
     var found by remember(read.code) { mutableStateOf<Boolean?>(null) }
+    var remembered by remember(read.code) { mutableStateOf(false) }
     // A part-number label is not a retail code: it is the supplier number itself.
     var name by remember(read.code) { mutableStateOf("") }
     var supplier by remember(read.code) { mutableStateOf(if (isGtin) "" else read.code) }
 
     LaunchedEffect(read.code) {
-        if (!isGtin) return@LaunchedEffect
-        val product = ProductLookup.lookup(read.code)
-        found = product != null
-        if (product != null) {
-            name = product.displayName
-            supplier = product.model.ifBlank { product.brand }
+        // 1. Something you identified before? Instant and offline.
+        val known = vm.knownProduct(read.code)
+        if (known != null) {
+            name = known.name
+            supplier = known.supplierNumber.ifBlank { supplier }
+            remembered = true
+            found = true
+            looking = false
+            return@LaunchedEffect
+        }
+        // 2. Otherwise ask the public databases, unless it is clearly a shop sticker.
+        if (isGtin && !storeLabel) {
+            val product = ProductLookup.lookup(read.code)
+            found = product != null
+            if (product != null) {
+                name = product.displayName
+                supplier = product.model.ifBlank { product.brand }
+            }
         }
         looking = false
     }
@@ -162,15 +179,25 @@ private fun ScanReviewDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 when {
+                    storeLabel && !remembered -> Text(
+                        stringResource(R.string.scan_store_label),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                     looking -> Row {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.lookup_searching), style = MaterialTheme.typography.bodySmall)
                     }
-                    isGtin && found == false -> Text(
-                        stringResource(R.string.lookup_not_found),
+                    remembered -> Text(
+                        stringResource(R.string.lookup_remembered),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    isGtin && found == false -> Text(
+                        stringResource(R.string.lookup_not_found) + " " + stringResource(R.string.lookup_will_remember),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     !isGtin -> Text(
                         stringResource(R.string.scan_not_retail),
@@ -197,7 +224,7 @@ private fun ScanReviewDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onAdd(name.trim(), supplier.trim()) }, enabled = !looking) {
+            TextButton(onClick = { onAdd(name.trim(), supplier.trim()) }, enabled = !looking && name.isNotBlank()) {
                 Text(stringResource(R.string.add))
             }
         },

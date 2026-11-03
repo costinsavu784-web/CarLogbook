@@ -350,6 +350,7 @@ fun ServiceEditScreen(
 
             jobs.forEachIndexed { index, job ->
                 JobDetailsCard(
+                    vm = vm,
                     job = job,
                     dateDay = dateDay,
                     odometerValue = odometerValue,
@@ -417,6 +418,7 @@ fun ServiceEditScreen(
 /** Reminder interval and parts list for one job. */
 @Composable
 private fun JobDetailsCard(
+    vm: MainViewModel,
     job: JobEntry,
     dateDay: Long,
     odometerValue: Int?,
@@ -488,7 +490,7 @@ private fun JobDetailsCard(
                     Text(stringResource(if (job.parts.isEmpty()) R.string.add_part else R.string.add_another_part))
                 }
                 // A scanned code becomes a new part line with the supplier number filled in.
-                ScanPartButton { s ->
+                ScanPartButton(vm) { s ->
                     onChange(job.copy(parts = job.parts + PartEntry(name = s.name, supplier = s.supplier, scannedCode = s.code, scannedAt = s.atMillis)))
                 }
             }
