@@ -127,6 +127,10 @@
     <string name="lookup_searching">Ricerca del prodotto…</string>
     <string name="lookup_not_found">Prodotto non trovato online. Inserisci il nome a mano.</string>
     <string name="scanned_on">Scansionato %1$s · %2$s</string>
+    <string name="scan_review_title">Ricambio scansionato</string>
+    <string name="scan_code_read">Codice letto: %1$s (%2$s)</string>
+    <string name="scan_not_retail">Questa è un’etichetta con codice ricambio, non un codice a barre commerciale: niente da cercare. Scrivi il nome.</string>
+    <string name="scan_again">Scansiona di nuovo</string>
     <string name="times_done">Interventi</string>
     <string name="avg_every">In media ogni</string>
     <string name="after_previous">%1$s dopo il precedente</string>

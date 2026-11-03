@@ -14,9 +14,21 @@ import java.net.URLEncoder
 object ProductLookup {
 
     data class Product(val name: String, val brand: String, val model: String) {
-        /** "Mann HU 8007 z Oil filter": brand first unless the name already starts with it. */
+        /**
+         * Short, readable name. Database titles are often long marketing strings
+         * ("MANN-FILTER HU 8007 z Oil Filter, for BMW 5 Series…"): keep up to the first comma or dash
+         * clause, cap the length, and put the brand in front if it is not already there.
+         */
         val displayName: String
-            get() = if (brand.isNotBlank() && !name.contains(brand, ignoreCase = true)) "$brand $name".trim() else name.trim()
+            get() {
+                var n = name.trim()
+                    .substringBefore(" - ")
+                    .substringBefore(" | ")
+                    .substringBefore(", ")
+                if (n.length > 60) n = n.take(60).substringBeforeLast(' ')
+                if (brand.isNotBlank() && !n.contains(brand, ignoreCase = true)) n = "$brand $n"
+                return n.trim()
+            }
     }
 
     /** EAN-8, UPC-A, EAN-13, GTIN-14: all digits, these lengths. Part numbers from Code 128 are not. */
